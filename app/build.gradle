@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'com.unipi.gkagkakis.smartalert'
-    compileSdk 36
+    compileSdkVersion 36
 
     defaultConfig {
         applicationId "com.unipi.gkagkakis.smartalert"

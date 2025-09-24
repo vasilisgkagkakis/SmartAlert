@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Large soft shadow -->
+    <item
+        android:left="0dp"
+        android:top="8dp"
+        android:right="8dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#08000000" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+
+    <!-- Medium shadow -->
+    <item
+        android:left="0dp"
+        android:top="4dp"
+        android:right="4dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#12000000" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+
+    <!-- Small sharp shadow -->
+    <item
+        android:left="0dp"
+        android:top="2dp"
+        android:right="2dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#18000000" />
+            <corners android:radius="17dp" />
+        </shape>
+    </item>
+
+    <!-- Card Background -->
+    <item
+        android:left="0dp"
+        android:top="0dp"
+        android:right="8dp"
+        android:bottom="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/card_background" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+
+</layer-list>
