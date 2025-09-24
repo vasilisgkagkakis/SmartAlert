@@ -2,6 +2,7 @@ package com.unipi.gkagkakis.smartalert;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -23,6 +24,7 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // Hide status bar for all activities
+        // Since it's gonna be used everywhere, maybe transfer it into a helper class ?
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -50,14 +52,34 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         btnRegister.setOnClickListener(v -> {
-            // Add registration logic here
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            if (validateInputs()) {
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            }
+            // else, errors are shown and navigation is blocked
         });
 
         tvLogin.setOnClickListener(v -> {
             startActivity(new Intent(this, LoginActivity.class));
             finish(); // Go back to login
         });
+    }
+
+    private boolean validateInputs() {
+        TextInputEditText[] fields = {etFullName, etEmail, etPhone, etPassword, etConfirmPassword};
+        String[] errorMessages = {
+                "Full name required", "Email required", "Phone required", "Password required", "Confirm password required"
+        };
+        boolean hasError = false;
+
+        for (int i = 0; i < fields.length; i++) {
+            if (TextUtils.isEmpty(fields[i].getText())) {
+                fields[i].setError(errorMessages[i]);
+                hasError = true;
+            } else {
+                fields[i].setError(null);
+            }
+        }
+        return !hasError;
     }
 }
