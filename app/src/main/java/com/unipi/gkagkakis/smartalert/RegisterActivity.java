@@ -80,6 +80,15 @@ public class RegisterActivity extends AppCompatActivity {
                 fields[i].setError(null);
             }
         }
+
+        // Check if passwords match
+        String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        String confirmPassword = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
+        if (!password.equals(confirmPassword)) {
+            etConfirmPassword.setError("Passwords do not match");
+            hasError = true;
+        }
+
         return !hasError;
     }
 }
