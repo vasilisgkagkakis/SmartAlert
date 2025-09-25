@@ -1,42 +1,54 @@
-package com.unipi.gkagkakis.smartalert;
+package com.unipi.gkagkakis.smartalert.presentation.view;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.WindowManager;
-import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.WindowCompat;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
+import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+
+import android.util.Log;
 
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin;
     private TextView tvRegister, tvForgotPassword;
-    private ImageView logoView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-//        // Hide status bar for all activities
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        Log.d("ActivityLifecycle", "onCreate: " + getClass().getSimpleName());
 
         setContentView(R.layout.activity_login);
-
+        StatusBarHelper.hideStatusBar(this);
         initViews();
         setupClickListeners();
-        startAnimation();
+        AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
     }
 
-    private void startAnimation() {
-        AnimationHelper.startLogoAnimation(this, logoView, R.anim.logo_up_and_down);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        android.util.Log.d("ActivityLifecycle", "onDestroy: " + getClass().getSimpleName());
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        android.util.Log.d("ActivityLifecycle", "onRestart: " + getClass().getSimpleName());
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        android.util.Log.d("ActivityLifecycle", "onRestoreInstanceState: " + getClass().getSimpleName());
     }
 
     private void initViews() {
@@ -45,7 +57,6 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btn_login);
         tvRegister = findViewById(R.id.tv_register);
         tvForgotPassword = findViewById(R.id.tv_forgot_password);
-        logoView = findViewById(R.id.logo);
     }
 
     private void setupClickListeners() {
@@ -55,8 +66,10 @@ public class LoginActivity extends AppCompatActivity {
             finish();
         });
 
-        tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
-
+        tvRegister.setOnClickListener(v -> {
+            startActivity(new Intent(this, RegisterActivity.class));
+            finish();
+        });
         tvForgotPassword.setOnClickListener(v -> {
             // Add forgot password logic here
         });

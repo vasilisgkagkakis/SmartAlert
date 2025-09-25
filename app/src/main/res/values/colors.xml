@@ -15,10 +15,20 @@
     <!-- Background Colors -->
     <color name="background_gradient_start">#667eea</color>
     <color name="background_gradient_end">#764ba2</color>
+    <color name="homepage_background_gradient_start">#FF6B35</color>
+    <color name="homepage_background_gradient_end">#DC143C</color>
     <color name="card_background">#FFFFFF</color>
 
     <!-- Status Colors -->
     <color name="success">#10B981</color>
     <color name="error">#EF4444</color>
     <color name="warning">#F59E0B</color>
+
+    <color name="homepageBackground">#F5F7FB</color>
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorAccent">#FF9800</color>
+    <color name="cardBackground">#FFFFFF</color>
+
+    <color name="delete">#B00020</color>
+
 </resources>

@@ -1,42 +1,53 @@
-package com.unipi.gkagkakis.smartalert;
+package com.unipi.gkagkakis.smartalert.presentation.view;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.WindowManager;
-import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
+import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputEditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
     private MaterialButton btnRegister;
     private TextView tvLogin;
-    private ImageView logoView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Hide status bar for all activities
-        // Since it's gonna be used everywhere, maybe transfer it into a helper class ?
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        android.util.Log.d("ActivityLifecycle", "onCreate: " + getClass().getSimpleName());
 
         setContentView(R.layout.activity_register);
-
+        StatusBarHelper.hideStatusBar(this);
         initViews();
         setupClickListeners();
-        startAnimation();
+        AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
     }
 
-    private void startAnimation() {
-        AnimationHelper.startLogoAnimation(this, logoView, R.anim.logo_up_and_down);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        android.util.Log.d("ActivityLifecycle", "onDestroy: " + getClass().getSimpleName());
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        android.util.Log.d("ActivityLifecycle", "onRestart: " + getClass().getSimpleName());
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        android.util.Log.d("ActivityLifecycle", "onRestoreInstanceState: " + getClass().getSimpleName());
     }
 
     private void initViews() {
@@ -47,7 +58,6 @@ public class RegisterActivity extends AppCompatActivity {
         etConfirmPassword = findViewById(R.id.et_confirm_password);
         btnRegister = findViewById(R.id.btn_register);
         tvLogin = findViewById(R.id.tv_login);
-        logoView = findViewById(R.id.logo);
     }
 
     private void setupClickListeners() {
