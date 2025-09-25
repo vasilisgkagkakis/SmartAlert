@@ -2,23 +2,34 @@ package com.unipi.gkagkakis.smartalert.presentation.view;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputEditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
     private MaterialButton btnRegister;
     private TextView tvLogin;
+
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +41,11 @@ public class RegisterActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
+
+
+        // Initialize Firebase Auth and Firestore
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
     }
 
     @Override
@@ -63,10 +79,16 @@ public class RegisterActivity extends AppCompatActivity {
     private void setupClickListeners() {
         btnRegister.setOnClickListener(v -> {
             if (validateInputs()) {
-                startActivity(new Intent(this, MainActivity.class));
-                finish();
+                String fullName = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
+                String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+                String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
+                String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+
+                registerUser(email, password, fullName, phone);
+//                clearErrors();
+//                clearFields();
+//                startActivity(new Intent(this, MainActivity.class));
             }
-            // else, errors are shown and navigation is blocked
         });
 
         tvLogin.setOnClickListener(v -> {
@@ -101,4 +123,64 @@ public class RegisterActivity extends AppCompatActivity {
 
         return !hasError;
     }
+
+    private void registerUser(String email, String password, String fullName, String phone) {
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            saveUserToFirestore(user, fullName, phone);
+                        }
+                        Toast.makeText(RegisterActivity.this, "Registration successful.", Toast.LENGTH_SHORT).show();
+//                        startActivity(new Intent(this, MainActivity.class));
+//                        finish();
+                    } else {
+                        android.util.Log.w("RegisterActivity", "createUserWithEmail:failure", task.getException());
+                        Toast.makeText(RegisterActivity.this, "Registration failed.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+    }
+
+    private void saveUserToFirestore(FirebaseUser user, String fullName, String phone) {
+        String uid = user.getUid();
+
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("fullName", fullName);
+        userData.put("email", user.getEmail());
+        userData.put("phone", phone);
+        userData.put("createdAt", System.currentTimeMillis());
+
+        db.collection("users").document(uid)
+                .set(userData)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Registration successful! Redirecting...", Toast.LENGTH_SHORT).show();
+
+                    new Handler().postDelayed(() -> {
+                        startActivity(new Intent(this, HomepageActivity.class));
+                    }, 2000);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to save user data: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+
+    private void clearFields() {
+        etFullName.setText("");
+        etEmail.setText("");
+        etPhone.setText("");
+        etPassword.setText("");
+        etConfirmPassword.setText("");
+    }
+
+    private void clearErrors() {
+        etFullName.setError(null);
+        etEmail.setError(null);
+        etPhone.setError(null);
+        etPassword.setError(null);
+        etConfirmPassword.setError(null);
+    }
+
 }
