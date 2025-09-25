@@ -1,4 +1,4 @@
-package com.unipi.gkagkakis.smartalert;
+package com.unipi.gkagkakis.smartalert.Utils;
 
 import android.content.Context;
 import android.view.View;
