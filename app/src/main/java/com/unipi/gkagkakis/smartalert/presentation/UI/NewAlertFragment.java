@@ -1,4 +1,4 @@
-package com.unipi.gkagkakis.smartalert.presentation.view;
+package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.content.Intent;
 import android.graphics.Bitmap;

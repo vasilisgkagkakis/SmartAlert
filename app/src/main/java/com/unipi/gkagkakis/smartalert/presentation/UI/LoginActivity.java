@@ -1,14 +1,17 @@
-package com.unipi.gkagkakis.smartalert.presentation.view;
+package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
@@ -70,8 +73,24 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(new Intent(this, RegisterActivity.class));
             finish();
         });
+
         tvForgotPassword.setOnClickListener(v -> {
-            // Add forgot password logic here
+            String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+            if (TextUtils.isEmpty(email)) {
+                Toast.makeText(LoginActivity.this, "Enter your email to reset password.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this, "Password reset email sent to " + email, Toast.LENGTH_SHORT).show();
+                            Log.d("LoginActivity", FirebaseAuth.getInstance().toString());
+                            Log.d("LoginActivity", "Password reset email sent to: " + email);
+                        } else {
+                            Toast.makeText(LoginActivity.this, "Failed to send reset email.", Toast.LENGTH_SHORT).show();
+                            Log.w("LoginActivity", "Failed to send password reset email.", task.getException());
+                        }
+                    });
         });
     }
 }

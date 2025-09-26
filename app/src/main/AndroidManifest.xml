@@ -12,7 +12,7 @@
         android:theme="@style/Theme.SmartAlert">
 
         <activity
-            android:name=".presentation.view.LoginActivity"
+            android:name=".presentation.UI.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,14 +21,16 @@
         </activity>
 
         <activity
-            android:name=".presentation.view.MainActivity"
+            android:name=".presentation.UI.MainActivity"
             android:exported="true" />
-<!--        <activity-->
-<!--            android:name=".presentation.view.LoginActivity"-->
-<!--            android:exported="false" />-->
+
         <activity
-            android:name=".presentation.view.RegisterActivity"
+            android:name=".presentation.UI.RegisterActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".presentation.UI.HomepageActivity"
+            android:exported="true" />
     </application>
 
 </manifest>
