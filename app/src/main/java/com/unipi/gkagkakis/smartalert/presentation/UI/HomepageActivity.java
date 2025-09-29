@@ -1,12 +1,14 @@
 package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 
@@ -14,16 +16,16 @@ public class HomepageActivity extends AppCompatActivity {
 
     private TextView tvUserName;
     private MaterialButton btnNewAlert;
+    private final FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        android.util.Log.d("ActivityLifecycle", "onCreate: " + getClass().getSimpleName());
-
         setContentView(R.layout.activity_homepage);
         StatusBarHelper.hideStatusBar(this);
         initViews();
         setupClickListeners();
+        Log.d("firebaseAuth", "mAuth: " + firebaseAuth);
     }
 
     private void initViews() {
@@ -39,11 +41,5 @@ public class HomepageActivity extends AppCompatActivity {
             transaction.addToBackStack(null);
             transaction.commit();
         });
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        android.util.Log.d("ActivityLifecycle", "onDestroy: " + getClass().getSimpleName());
     }
 }

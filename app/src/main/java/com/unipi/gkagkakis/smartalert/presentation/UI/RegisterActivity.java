@@ -68,7 +68,7 @@ public class RegisterActivity extends AppCompatActivity {
                 String fullName = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
                 String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
                 String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
-                String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+                String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
                 viewModel.registerUser(email, password, fullName, phone);
             }

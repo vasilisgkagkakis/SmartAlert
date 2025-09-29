@@ -3,7 +3,6 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 import android.content.Intent;
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
@@ -18,36 +17,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        android.util.Log.d("ActivityLifecycle", "onCreate: " + getClass().getSimpleName());
         setContentView(R.layout.activity_main);
         StatusBarHelper.hideStatusBar(this);
         initViews();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        android.util.Log.d("ActivityLifecycle", "onResume: " + getClass().getSimpleName());
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        android.util.Log.d("ActivityLifecycle", "onDestroy: " + getClass().getSimpleName());
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        android.util.Log.d("ActivityLifecycle", "onRestart: " + getClass().getSimpleName());
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        android.util.Log.d("ActivityLifecycle", "onRestoreInstanceState: " + getClass().getSimpleName());
     }
 
     private void initViews() {

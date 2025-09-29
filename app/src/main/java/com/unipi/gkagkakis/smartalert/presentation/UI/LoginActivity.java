@@ -2,12 +2,13 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -15,6 +16,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+import com.unipi.gkagkakis.smartalert.presentation.viewmodel.LoginViewModel;
 
 import android.util.Log;
 
@@ -23,35 +25,17 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin;
     private TextView tvRegister, tvForgotPassword;
+    private LoginViewModel viewModel;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("ActivityLifecycle", "onCreate: " + getClass().getSimpleName());
-
         setContentView(R.layout.activity_login);
         StatusBarHelper.hideStatusBar(this);
         initViews();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        android.util.Log.d("ActivityLifecycle", "onDestroy: " + getClass().getSimpleName());
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        android.util.Log.d("ActivityLifecycle", "onRestart: " + getClass().getSimpleName());
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        android.util.Log.d("ActivityLifecycle", "onRestoreInstanceState: " + getClass().getSimpleName());
     }
 
     private void initViews() {
@@ -60,13 +44,35 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btn_login);
         tvRegister = findViewById(R.id.tv_register);
         tvForgotPassword = findViewById(R.id.tv_forgot_password);
+
+        viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
+
+        viewModel.loginSuccess.observe(this, success -> {
+            if (success != null && success) {
+                Toast.makeText(this, "Login successful! Redirecting...", Toast.LENGTH_SHORT).show();
+                new Handler().postDelayed(() -> {
+                    startActivity(new Intent(this, HomepageActivity.class));
+                    finish();
+                }, 2000);
+            }
+        });
+
+        viewModel.loginError.observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void setupClickListeners() {
         btnLogin.setOnClickListener(v -> {
-            // Add login logic here
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            if(!validateInputs()) {
+                return;
+            }
+            String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+            String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
+
+            viewModel.loginUser(email, password);
         });
 
         tvRegister.setOnClickListener(v -> {
@@ -92,5 +98,23 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     });
         });
+    }
+
+    private boolean validateInputs() {
+        TextInputEditText[] fields = {etEmail, etPassword};
+        String[] errorMessages = {"Email required", "Password required"
+        };
+        boolean hasError = false;
+
+        for (int i = 0; i < fields.length; i++) {
+            if (TextUtils.isEmpty(fields[i].getText())) {
+                fields[i].setError(errorMessages[i]);
+                hasError = true;
+            } else {
+                fields[i].setError(null);
+            }
+        }
+
+        return !hasError;
     }
 }

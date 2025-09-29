@@ -15,7 +15,7 @@ public class UserRepositoryImpl implements UserRepository {
     public Task<Void> saveUser(FirebaseUser user, String fullName, String phone) {
         Map<String, Object> userData = new HashMap<>();
         userData.put("fullName", fullName);
-        userData.put("email", user.getEmail());
+//        userData.put("email", user.getEmail());
         userData.put("phone", phone);
 
         return firestore.collection("users")
