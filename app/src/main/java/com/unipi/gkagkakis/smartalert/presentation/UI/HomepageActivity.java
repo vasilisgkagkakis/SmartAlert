@@ -3,24 +3,26 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
+
 import androidx.lifecycle.ViewModelProvider;
+
+import androidx.core.view.GravityCompat;
+
 import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.HomepageViewModel;
 
-public class HomepageActivity extends AppCompatActivity {
+public class HomepageActivity extends BaseActivity {
 
     private TextView tvUserName;
     private MaterialButton btnNewAlert;
-    private TextView tvLogout;
     private HomepageViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_homepage);
+        setContentViewWithDrawer(R.layout.activity_homepage);
         StatusBarHelper.hideStatusBar(this);
 
         viewModel = new ViewModelProvider(this).get(HomepageViewModel.class);
@@ -35,7 +37,16 @@ public class HomepageActivity extends AppCompatActivity {
     private void initViews() {
         tvUserName = findViewById(R.id.tv_user_name);
         btnNewAlert = findViewById(R.id.btn_new_alert);
-        tvLogout = findViewById(R.id.tv_logout);
+    }
+
+    @Override
+    protected void onFabClick() {
+        // Override the FAB behavior for this activity
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            drawerLayout.openDrawer(GravityCompat.START);
+        }
     }
 
     private void setupClickListeners() {
@@ -48,7 +59,6 @@ public class HomepageActivity extends AppCompatActivity {
                     .commit();
         });
 
-        tvLogout.setOnClickListener(v -> viewModel.logout());
     }
 
     private void observeViewModel() {
