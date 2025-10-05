@@ -3,7 +3,7 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
-
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import androidx.core.view.GravityCompat;
@@ -17,6 +17,7 @@ public class HomepageActivity extends BaseActivity {
 
     private TextView tvUserName;
     private MaterialButton btnNewAlert;
+    private TextView tvLogout;
     private HomepageViewModel viewModel;
 
     @Override
