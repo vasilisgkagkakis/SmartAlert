@@ -12,7 +12,7 @@
         android:theme="@style/Theme.SmartAlert">
 
         <activity
-            android:name=".presentation.UI.HomepageActivity"
+            android:name=".presentation.UI.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,7 +21,7 @@
         </activity>
 
         <activity
-            android:name=".presentation.UI.MainActivity"
+            android:name=".presentation.UI.HomepageActivity"
             android:exported="true" />
 
         <activity
