@@ -25,6 +25,10 @@
             android:exported="true" />
 
         <activity
+            android:name=".presentation.UI.AdminHomepageActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".presentation.UI.RegisterActivity"
             android:exported="false" />
 

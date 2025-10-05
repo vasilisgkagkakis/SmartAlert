@@ -17,6 +17,7 @@ import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.LoginViewModel;
+import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
 
 import android.util.Log;
 
@@ -51,8 +52,7 @@ public class LoginActivity extends AppCompatActivity {
             if (success != null && success) {
                 Toast.makeText(this, "Login successful! Redirecting...", Toast.LENGTH_SHORT).show();
                 new Handler().postDelayed(() -> {
-                    startActivity(new Intent(this, HomepageActivity.class));
-                    finish();
+                    handleLoginSuccess();
                 }, 2000);
             }
         });
@@ -116,5 +116,28 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         return !hasError;
+    }
+
+    private void handleLoginSuccess() {
+        viewModel.getUserRepository().checkIsAdmin(new UserRepository.IsAdminCallback() {
+            @Override
+            public void onIsAdminResult(boolean isAdmin) {
+                Intent intent;
+                if (isAdmin) {
+                    intent = new Intent(LoginActivity.this, AdminHomepageActivity.class);
+                } else {
+                    intent = new Intent(LoginActivity.this, HomepageActivity.class);
+                }
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onIsAdminFailed() {
+                // Default to regular homepage if admin check fails
+                startActivity(new Intent(LoginActivity.this, HomepageActivity.class));
+                finish();
+            }
+        });
     }
 }

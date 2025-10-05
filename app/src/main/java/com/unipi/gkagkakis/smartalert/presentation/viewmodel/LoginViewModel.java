@@ -47,4 +47,8 @@ public class LoginViewModel extends AndroidViewModel {
                     }
                 });
     }
+
+    public UserRepository getUserRepository() {
+        return userRepository;
+    }
 }

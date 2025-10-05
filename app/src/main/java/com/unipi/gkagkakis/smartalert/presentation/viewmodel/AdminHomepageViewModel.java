@@ -8,13 +8,12 @@ import androidx.lifecycle.MutableLiveData;
 import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
 
-public class HomepageViewModel extends AndroidViewModel {
+public class AdminHomepageViewModel extends AndroidViewModel {
     private final UserRepository userRepository;
-    private final MutableLiveData<String> userName = new MutableLiveData<>("User");
+    private final MutableLiveData<String> userName = new MutableLiveData<>("Admin User");
     private final MutableLiveData<Boolean> shouldNavigateToLogin = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> isAdmin = new MutableLiveData<>(false);
 
-    public HomepageViewModel(@NonNull Application application) {
+    public AdminHomepageViewModel(@NonNull Application application) {
         super(application);
         this.userRepository = new UserRepositoryImpl(application);
     }
@@ -27,10 +26,6 @@ public class HomepageViewModel extends AndroidViewModel {
         return shouldNavigateToLogin;
     }
 
-    public LiveData<Boolean> getIsAdmin() {
-        return isAdmin;
-    }
-
     public void checkUserAndLoadName() {
         if (!userRepository.isUserAuthenticated()) {
             shouldNavigateToLogin.setValue(true);
@@ -40,26 +35,12 @@ public class HomepageViewModel extends AndroidViewModel {
         userRepository.getUserName(new UserRepository.UserNameCallback() {
             @Override
             public void onUserNameLoaded(String name) {
-                userName.postValue(name);
+                userName.postValue("Admin: " + name);
             }
 
             @Override
             public void onUserNotAuthenticated() {
                 shouldNavigateToLogin.postValue(true);
-            }
-        });
-    }
-
-    public void checkAdminStatus() {
-        userRepository.checkIsAdmin(new UserRepository.IsAdminCallback() {
-            @Override
-            public void onIsAdminResult(boolean adminStatus) {
-                isAdmin.postValue(adminStatus);
-            }
-
-            @Override
-            public void onIsAdminFailed() {
-                isAdmin.postValue(false);
             }
         });
     }

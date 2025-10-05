@@ -29,9 +29,15 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Task<Void> saveUser(FirebaseUser user, String fullName, String phone) {
+        return saveUser(user, fullName, phone, false);
+    }
+
+    @Override
+    public Task<Void> saveUser(FirebaseUser user, String fullName, String phone, boolean isAdmin) {
         Map<String, Object> userData = new HashMap<>();
         userData.put("fullName", fullName);
         userData.put("phone", phone);
+        userData.put("isAdmin", isAdmin);
 
         return firestore.collection("users")
                 .document(user.getUid())
@@ -108,6 +114,7 @@ public class UserRepositoryImpl implements UserRepository {
                     if (doc.exists()) {
                         String fullName = doc.getString("fullName");
                         String phone = doc.getString("phone");
+                        Boolean isAdmin = doc.getBoolean("isAdmin");
                         if (prefs != null) {
                             SharedPreferences.Editor editor = prefs.edit();
                             if (fullName != null) {
@@ -116,6 +123,7 @@ public class UserRepositoryImpl implements UserRepository {
                             if (phone != null) {
                                 editor.putString("phone", phone);
                             }
+                            editor.putBoolean("isAdmin", isAdmin != null ? isAdmin : false);
                             editor.apply();
                         }
                     }
@@ -128,15 +136,48 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public boolean isUserAuthenticated() {
+        return firebaseAuth.getCurrentUser() != null;
+    }
+
+    @Override
+    public void checkIsAdmin(IsAdminCallback callback) {
+        if (!isUserAuthenticated()) {
+            callback.onIsAdminFailed();
+            return;
+        }
+
+        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        if (currentUser == null) {
+            callback.onIsAdminFailed();
+            return;
+        }
+
+        String userId = currentUser.getUid();
+
+        firestore.collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Boolean isAdmin = doc.getBoolean("isAdmin");
+                        boolean adminStatus = isAdmin != null ? isAdmin : false;
+                        callback.onIsAdminResult(adminStatus);
+                    } else {
+                        callback.onIsAdminResult(false);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Admin check failed", e);
+                    callback.onIsAdminFailed();
+                });
+    }
+
+    @Override
     public void logout() {
         firebaseAuth.signOut();
         if (prefs != null) {
             prefs.edit().clear().apply();
         }
-    }
-
-    @Override
-    public boolean isUserAuthenticated() {
-        return firebaseAuth.getCurrentUser() != null;
     }
 }
