@@ -114,7 +114,6 @@ public class UserRepositoryImpl implements UserRepository {
                     if (doc.exists()) {
                         String fullName = doc.getString("fullName");
                         String phone = doc.getString("phone");
-                        Boolean isAdmin = doc.getBoolean("isAdmin");
                         if (prefs != null) {
                             SharedPreferences.Editor editor = prefs.edit();
                             if (fullName != null) {
@@ -123,7 +122,6 @@ public class UserRepositoryImpl implements UserRepository {
                             if (phone != null) {
                                 editor.putString("phone", phone);
                             }
-                            editor.putBoolean("isAdmin", isAdmin != null ? isAdmin : false);
                             editor.apply();
                         }
                     }

@@ -12,7 +12,6 @@ public class HomepageViewModel extends AndroidViewModel {
     private final UserRepository userRepository;
     private final MutableLiveData<String> userName = new MutableLiveData<>("User");
     private final MutableLiveData<Boolean> shouldNavigateToLogin = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> isAdmin = new MutableLiveData<>(false);
 
     public HomepageViewModel(@NonNull Application application) {
         super(application);
@@ -25,10 +24,6 @@ public class HomepageViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> getShouldNavigateToLogin() {
         return shouldNavigateToLogin;
-    }
-
-    public LiveData<Boolean> getIsAdmin() {
-        return isAdmin;
     }
 
     public void checkUserAndLoadName() {
@@ -46,20 +41,6 @@ public class HomepageViewModel extends AndroidViewModel {
             @Override
             public void onUserNotAuthenticated() {
                 shouldNavigateToLogin.postValue(true);
-            }
-        });
-    }
-
-    public void checkAdminStatus() {
-        userRepository.checkIsAdmin(new UserRepository.IsAdminCallback() {
-            @Override
-            public void onIsAdminResult(boolean adminStatus) {
-                isAdmin.postValue(adminStatus);
-            }
-
-            @Override
-            public void onIsAdminFailed() {
-                isAdmin.postValue(false);
             }
         });
     }
