@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
@@ -22,8 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LocationTrackingService {
-    private static final String TAG = "LocationTracking";
+    private static final String TAG = "LocationTrackingService";
     public static final int LOCATION_PERMISSION_REQUEST_CODE = 1002;
+    public static final int BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1003;
 
     private static LocationTrackingService instance;
     private Context context;
@@ -46,7 +48,7 @@ public class LocationTrackingService {
     }
 
     /**
-     * Check if location permissions are granted
+     * Check if basic location permissions are granted
      */
     public boolean hasLocationPermissions() {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -54,7 +56,17 @@ public class LocationTrackingService {
     }
 
     /**
-     * Request location permissions
+     * Check if background location permission is granted (Android 10+)
+     */
+    public boolean hasBackgroundLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
+        return true; // Not needed for older versions
+    }
+
+    /**
+     * Request basic location permissions
      */
     public void requestLocationPermissions(Activity activity) {
         ActivityCompat.requestPermissions(activity,
@@ -66,21 +78,61 @@ public class LocationTrackingService {
     }
 
     /**
-     * Start location tracking - gets current location and stores it in Firestore
+     * Request background location permission (must be called after basic permissions are granted)
      */
-    public void startLocationTracking() {
+    public void requestBackgroundLocationPermission(Activity activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (!hasBackgroundLocationPermission() && hasLocationPermissions()) {
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE);
+            }
+        }
+    }
+
+    /**
+     * Start continuous location tracking with background service
+     */
+    public void startContinuousLocationTracking() {
         if (!hasLocationPermissions()) {
-            Log.w(TAG, "Location permissions not granted, cannot track location");
+            Log.w(TAG, "Basic location permissions not granted, cannot start continuous tracking");
             return;
         }
 
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
-            Log.w(TAG, "User not authenticated, cannot store location");
+            Log.w(TAG, "User not authenticated, cannot start continuous tracking");
             return;
         }
 
-        getCurrentLocationAndStore();
+        if (hasBackgroundLocationPermission()) {
+            // Start the foreground service for continuous tracking
+            LocationTrackingForegroundService.startService(context);
+            Log.d(TAG, "Continuous location tracking started with background permission");
+        } else {
+            Log.w(TAG, "Background location permission not granted, starting basic tracking only");
+            // Fall back to basic location tracking
+            getCurrentLocationAndStore();
+        }
+    }
+
+    /**
+     * Stop continuous location tracking
+     */
+    public void stopContinuousLocationTracking() {
+        LocationTrackingForegroundService.stopService(context);
+        Log.d(TAG, "Continuous location tracking stopped");
+    }
+
+    /**
+     * Get current location and store in Firestore (one-time update)
+     */
+    public void updateLocationNow() {
+        if (hasLocationPermissions()) {
+            getCurrentLocationAndStore();
+        } else {
+            Log.w(TAG, "Cannot update location - permissions not granted");
+        }
     }
 
     /**
@@ -153,6 +205,7 @@ public class LocationTrackingService {
         locationData.put("lastLocationUpdate", System.currentTimeMillis());
         locationData.put("latitude", latitude);
         locationData.put("longitude", longitude);
+        locationData.put("locationSource", "manual_update");
 
         firestore.collection("users")
                 .document(userId)
@@ -181,22 +234,20 @@ public class LocationTrackingService {
             if (grantResults.length > 0 &&
                 (grantResults[0] == PackageManager.PERMISSION_GRANTED ||
                  (grantResults.length > 1 && grantResults[1] == PackageManager.PERMISSION_GRANTED))) {
-                Log.d(TAG, "Location permission granted");
-                startLocationTracking();
+                Log.d(TAG, "Basic location permission granted");
+                // Start immediate location update
+                getCurrentLocationAndStore();
+                // Don't start continuous tracking yet - will be started separately
             } else {
-                Log.w(TAG, "Location permission denied");
+                Log.w(TAG, "Basic location permission denied");
             }
-        }
-    }
-
-    /**
-     * Force location update - call this when user opens the app
-     */
-    public void updateLocationNow() {
-        if (hasLocationPermissions()) {
-            getCurrentLocationAndStore();
-        } else {
-            Log.w(TAG, "Cannot update location - permissions not granted");
+        } else if (requestCode == BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Background location permission granted");
+                startContinuousLocationTracking();
+            } else {
+                Log.w(TAG, "Background location permission denied - will use foreground-only tracking");
+            }
         }
     }
 }

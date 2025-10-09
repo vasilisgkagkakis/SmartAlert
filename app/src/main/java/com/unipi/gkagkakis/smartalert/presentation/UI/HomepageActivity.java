@@ -52,7 +52,14 @@ public class HomepageActivity extends BaseActivity {
 
     private void updateUserLocation() {
         if (locationTrackingService.hasLocationPermissions()) {
-            locationTrackingService.updateLocationNow();
+            // Start continuous tracking if we have permissions
+            if (locationTrackingService.hasBackgroundLocationPermission()) {
+                locationTrackingService.startContinuousLocationTracking();
+            } else {
+                // Request background permission and start basic tracking
+                locationTrackingService.requestBackgroundLocationPermission(this);
+                locationTrackingService.updateLocationNow();
+            }
         } else {
             // Request permissions if not granted
             locationTrackingService.requestLocationPermissions(this);
@@ -63,6 +70,13 @@ public class HomepageActivity extends BaseActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
+
+        // After handling basic location permissions, request background permission
+        if (requestCode == LocationTrackingService.LOCATION_PERMISSION_REQUEST_CODE) {
+            if (locationTrackingService.hasLocationPermissions()) {
+                locationTrackingService.requestBackgroundLocationPermission(this);
+            }
+        }
     }
 
     private void initViews() {

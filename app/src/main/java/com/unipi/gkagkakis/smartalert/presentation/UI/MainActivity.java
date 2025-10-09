@@ -51,10 +51,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestLocationPermissionsAndStartTracking() {
         if (locationTrackingService.hasLocationPermissions()) {
-            // Permissions already granted, start tracking
-            locationTrackingService.startLocationTracking();
+            // Basic permissions already granted, check for background permission
+            if (locationTrackingService.hasBackgroundLocationPermission()) {
+                // All permissions granted, start continuous tracking
+                locationTrackingService.startContinuousLocationTracking();
+            } else {
+                // Request background location permission
+                locationTrackingService.requestBackgroundLocationPermission(this);
+            }
         } else {
-            // Request location permissions
+            // Request basic location permissions first
             locationTrackingService.requestLocationPermissions(this);
         }
     }
@@ -68,6 +74,14 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle location permissions
         locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
+
+        // After handling basic location permissions, request background permission
+        if (requestCode == LocationTrackingService.LOCATION_PERMISSION_REQUEST_CODE) {
+            if (locationTrackingService.hasLocationPermissions()) {
+                // Basic permissions granted, now request background permission
+                locationTrackingService.requestBackgroundLocationPermission(this);
+            }
+        }
     }
 
     private void checkUserTypeAndNavigate() {
