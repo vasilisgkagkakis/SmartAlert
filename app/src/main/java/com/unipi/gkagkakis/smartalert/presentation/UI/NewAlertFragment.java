@@ -88,6 +88,8 @@ public class NewAlertFragment extends Fragment {
         setupDropdowns();
         setupLocationAutoParse();
         setupClickListeners();
+        observeViewModel();
+
         // Long‑press the location field to use current device location
         etLocation.setOnLongClickListener(v -> {
             requestLocationThenFill();
@@ -161,6 +163,36 @@ public class NewAlertFragment extends Fragment {
         });
     }
 
+    private void observeViewModel() {
+        alertViewModel.getSaving().observe(getViewLifecycleOwner(), isSaving -> {
+            if (isSaving != null) {
+                btnCreateAlert.setEnabled(!isSaving);
+                btnCreateAlert.setText(isSaving ? "Creating Alert..." : "Create Alert");
+            }
+        });
+
+        alertViewModel.getUploadProgress().observe(getViewLifecycleOwner(), progress -> {
+            if (progress != null && progress > 0 && progress < 100) {
+                btnCreateAlert.setText("Uploading... " + progress + "%");
+            }
+        });
+
+        alertViewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
+                // Don't pop back stack if there's an error
+            }
+        });
+
+        alertViewModel.getCreatedId().observe(getViewLifecycleOwner(), alertId -> {
+            if (alertId != null && !alertId.isEmpty()) {
+                Toast.makeText(requireContext(), "Alert created successfully!", Toast.LENGTH_SHORT).show();
+                requireActivity().getSupportFragmentManager().popBackStack();
+                alertViewModel.clearResult(); // Clear the result after handling
+            }
+        });
+    }
+
     private void setupClickListeners() {
         btnCreateAlert.setOnClickListener(v -> {
             if (validateInputs()) {
@@ -169,9 +201,8 @@ public class NewAlertFragment extends Fragment {
                 String location = etLocation.getText() != null ? etLocation.getText().toString().trim() : "";
                 String description = etAlertDescription.getText() != null ? etAlertDescription.getText().toString().trim() : "";
                 Uri imageUriToPass = (imageUri != null) ? imageUri : null;
-                alertViewModel.createAlert(alertType, severity, location, description, imageUriToPass);
-                Toast.makeText(requireContext(), "Alert created successfully!", Toast.LENGTH_SHORT).show();
-                requireActivity().getSupportFragmentManager().popBackStack();
+                alertViewModel.createAlert(requireContext(), alertType, severity, location, description, imageUriToPass);
+                // Don't show success toast or pop back stack immediately - wait for ViewModel response
             }
         });
 
@@ -294,3 +325,4 @@ public class NewAlertFragment extends Fragment {
         Toast.makeText(requireContext(), "Location filled from device", Toast.LENGTH_SHORT).show();
     }
 }
+

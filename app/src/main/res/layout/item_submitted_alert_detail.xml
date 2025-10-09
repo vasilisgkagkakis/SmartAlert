@@ -44,6 +44,37 @@
         android:textColor="@android:color/black"
         android:layout_marginBottom="8dp" />
 
+    <!-- Image container for alert images -->
+    <LinearLayout
+        android:id="@+id/layoutAlertImage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Attached Image:"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="4dp" />
+
+        <ImageView
+            android:id="@+id/imageAlertPhoto"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginBottom="4dp"
+            android:scaleType="centerCrop"
+            android:background="@drawable/image_border"
+            android:contentDescription="Alert image"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
     <TextView
         android:id="@+id/textAlertLocation"
         android:layout_width="match_parent"

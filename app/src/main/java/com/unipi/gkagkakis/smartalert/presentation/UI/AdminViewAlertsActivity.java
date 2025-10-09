@@ -82,30 +82,50 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
 
     private void groupSubmittedAlerts(List<SubmittedAlert> submittedAlerts) {
         submittedAlertGroups.clear();
-        List<SubmittedAlert> remainingAlerts = new ArrayList<>(submittedAlerts);
 
-        while (!remainingAlerts.isEmpty()) {
-            SubmittedAlert currentAlert = remainingAlerts.remove(0);
-            SubmittedAlertGroup group = new SubmittedAlertGroup();
-            group.addSubmittedAlert(currentAlert);
+        // Group alerts by type using a Map
+        java.util.Map<String, List<SubmittedAlert>> alertsByType = new java.util.HashMap<>();
 
-            // Find alerts within 5km of the current alert
-            List<SubmittedAlert> alertsToRemove = new ArrayList<>();
-            for (SubmittedAlert otherAlert : remainingAlerts) {
-                if (areAlertsNearby(currentAlert, otherAlert)) {
-                    group.addSubmittedAlert(otherAlert);
-                    alertsToRemove.add(otherAlert);
-                }
+        // Group all alerts by their type
+        for (SubmittedAlert alert : submittedAlerts) {
+            String alertType = alert.getType();
+            if (alertType == null || alertType.trim().isEmpty()) {
+                alertType = "Unknown"; // Handle null or empty types
             }
 
-            // Remove grouped alerts from remaining alerts
-            remainingAlerts.removeAll(alertsToRemove);
+            if (!alertsByType.containsKey(alertType)) {
+                alertsByType.put(alertType, new ArrayList<>());
+            }
+            alertsByType.get(alertType).add(alert);
+        }
 
-            // Set group location based on first alert
-            group.setGroupLocation(currentAlert.getLocation());
+        // Convert grouped alerts to SubmittedAlertGroup objects
+        for (java.util.Map.Entry<String, List<SubmittedAlert>> entry : alertsByType.entrySet()) {
+            String alertType = entry.getKey();
+            List<SubmittedAlert> alertsOfType = entry.getValue();
+
+            SubmittedAlertGroup group = new SubmittedAlertGroup();
+
+            // Add all alerts of this type to the group
+            for (SubmittedAlert alert : alertsOfType) {
+                group.addSubmittedAlert(alert);
+            }
+
+            // Set group location as the type name (since we're grouping by type now)
+            group.setGroupLocation(alertType + " Alerts");
 
             submittedAlertGroups.add(group);
         }
+
+        // Sort groups by alert type for consistent display
+        submittedAlertGroups.sort((group1, group2) -> {
+            SubmittedAlert alert1 = group1.getFirstAlert();
+            SubmittedAlert alert2 = group2.getFirstAlert();
+            if (alert1 != null && alert2 != null) {
+                return alert1.getType().compareToIgnoreCase(alert2.getType());
+            }
+            return 0;
+        });
     }
 
     private boolean areAlertsNearby(SubmittedAlert alert1, SubmittedAlert alert2) {

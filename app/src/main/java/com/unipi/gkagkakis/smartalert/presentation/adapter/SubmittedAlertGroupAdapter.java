@@ -166,6 +166,8 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             TextView textDescription = alertView.findViewById(R.id.textAlertDescription);
             TextView textLocation = alertView.findViewById(R.id.textAlertLocation);
             TextView textDate = alertView.findViewById(R.id.textAlertDate);
+            LinearLayout layoutAlertImage = alertView.findViewById(R.id.layoutAlertImage);
+            ImageView imageAlertPhoto = alertView.findViewById(R.id.imageAlertPhoto);
 
             textType.setText(alert.getType());
             textSeverity.setText(String.format("Severity: %s", alert.getSeverity()));
@@ -176,7 +178,49 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
                 textDate.setText(String.format("Created: %s", dateFormat.format(alert.getCreatedAt())));
             }
 
+            // Handle image loading
+            if (alert.getImageUrl() != null && !alert.getImageUrl().isEmpty()) {
+                layoutAlertImage.setVisibility(View.VISIBLE);
+
+                // Load image using ImageLoader
+                com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
+                    itemView.getContext(),
+                    alert.getImageUrl(),
+                    imageAlertPhoto
+                );
+
+                // Set click listener to show full-size image
+                imageAlertPhoto.setOnClickListener(v -> {
+                    showFullSizeImage(alert.getImageUrl());
+                });
+            } else {
+                layoutAlertImage.setVisibility(View.GONE);
+            }
+
             return alertView;
+        }
+
+        private void showFullSizeImage(String imageUrl) {
+            // Create and show full-size image dialog
+            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(itemView.getContext());
+            View dialogView = LayoutInflater.from(itemView.getContext())
+                    .inflate(android.R.layout.select_dialog_item, null);
+
+            ImageView fullSizeImageView = new ImageView(itemView.getContext());
+            fullSizeImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            fullSizeImageView.setAdjustViewBounds(true);
+
+            // Load full-size image
+            com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
+                itemView.getContext(),
+                imageUrl,
+                fullSizeImageView
+            );
+
+            builder.setView(fullSizeImageView)
+                   .setTitle("Alert Image")
+                   .setPositiveButton("Close", null)
+                   .show();
         }
     }
 }
