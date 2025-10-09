@@ -107,6 +107,7 @@
                         android:id="@+id/et_location"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:hint="Tap and hold"
                         android:inputType="textCapWords" />
                 </com.google.android.material.textfield.TextInputLayout>
 
