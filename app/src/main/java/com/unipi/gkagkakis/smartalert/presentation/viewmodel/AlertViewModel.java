@@ -9,19 +9,20 @@ import androidx.lifecycle.ViewModel;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.unipi.gkagkakis.smartalert.model.Alert;
-import com.unipi.gkagkakis.smartalert.data.repository.AlertRepositoryImpl;
+import com.unipi.gkagkakis.smartalert.model.SubmittedAlert;
+import com.unipi.gkagkakis.smartalert.data.repository.SubmittedAlertRepositoryImpl;
+import com.unipi.gkagkakis.smartalert.domain.repository.SubmittedAlertRepository;
 
 public class AlertViewModel extends ViewModel {
 
-    private final AlertRepositoryImpl repository;
+    private final SubmittedAlertRepositoryImpl repository;
 
     private final MutableLiveData<Boolean> saving = new MutableLiveData<>(false);
     private final MutableLiveData<String> createdId = new MutableLiveData<>(null);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
 
     public AlertViewModel() {
-        this.repository = AlertRepositoryImpl.getInstance();
+        this.repository = SubmittedAlertRepositoryImpl.getInstance();
     }
 
     public LiveData<Boolean> getSaving() { return saving; }
@@ -41,7 +42,7 @@ public class AlertViewModel extends ViewModel {
 
         saving.postValue(true);
 
-        Alert alert = new Alert(
+        SubmittedAlert submittedAlert = new SubmittedAlert(
                 null,
                 type.trim(),
                 severity.trim(),
@@ -52,7 +53,7 @@ public class AlertViewModel extends ViewModel {
                 null
         );
 
-        repository.createAlert(alert, new AlertRepositoryImpl.CreateAlertCallback() {
+        repository.createSubmittedAlert(submittedAlert, new SubmittedAlertRepository.CreateSubmittedAlertCallback() {
             @Override
             public void onSuccess(@NonNull String alertId) {
                 saving.postValue(false);
@@ -62,7 +63,7 @@ public class AlertViewModel extends ViewModel {
             @Override
             public void onError(@NonNull Exception e) {
                 saving.postValue(false);
-                error.postValue(e.getMessage() != null ? e.getMessage() : "Failed to create alert.");
+                error.postValue(e.getMessage() != null ? e.getMessage() : "Failed to submit alert for review.");
             }
         });
     }

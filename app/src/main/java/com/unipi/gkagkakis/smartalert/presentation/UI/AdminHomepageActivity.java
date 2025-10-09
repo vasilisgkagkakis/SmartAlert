@@ -2,6 +2,7 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.lifecycle.ViewModelProvider;
@@ -16,6 +17,7 @@ public class AdminHomepageActivity extends BaseActivity {
     private TextView tvAdminTitle;
     private TextView tvUserName;
     private TextView tvLogout;
+    private Button btnViewAllAlerts;
     private AdminHomepageViewModel viewModel;
 
     @Override
@@ -37,6 +39,7 @@ public class AdminHomepageActivity extends BaseActivity {
         tvAdminTitle = findViewById(R.id.tv_admin_title);
         tvUserName = findViewById(R.id.tv_user_name);
         tvLogout = findViewById(R.id.tv_logout);
+        btnViewAllAlerts = findViewById(R.id.btn_view_all_alerts);
     }
 
     @Override
@@ -50,6 +53,10 @@ public class AdminHomepageActivity extends BaseActivity {
 
     private void setupClickListeners() {
         tvLogout.setOnClickListener(v -> viewModel.logout());
+        btnViewAllAlerts.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AdminViewAlertsActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void observeViewModel() {

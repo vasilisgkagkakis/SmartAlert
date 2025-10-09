@@ -31,6 +31,15 @@
         android:textSize="16sp"
         android:layout_marginBottom="32dp" />
 
+    <Button
+        android:id="@+id/btn_view_all_alerts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Review Submitted Alerts"
+        android:textSize="16sp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/primary_color" />
+
     <TextView
         android:id="@+id/tv_logout"
         android:layout_width="wrap_content"

@@ -32,6 +32,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".presentation.UI.AdminViewAlertsActivity"
+            android:exported="false"
+            android:parentActivityName=".presentation.UI.AdminHomepageActivity" />
+
+        <activity
             android:name=".presentation.UI.RegisterActivity"
             android:exported="false" />
 

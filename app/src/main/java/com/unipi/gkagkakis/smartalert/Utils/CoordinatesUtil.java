@@ -66,4 +66,48 @@ public final class CoordinatesUtil {
     private static double parseDoubleSafe(String s) {
         try { return Double.parseDouble(s); } catch (Exception e) { return Double.NaN; }
     }
+
+    /**
+     * Calculate distance between two coordinates using Haversine formula
+     * @param lat1 Latitude of first point
+     * @param lon1 Longitude of first point
+     * @param lat2 Latitude of second point
+     * @param lon2 Longitude of second point
+     * @return Distance in kilometers
+     */
+    public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of the earth in km
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distance in km
+    }
+
+    /**
+     * Parse coordinates from a coordinate string and calculate distance to another coordinate
+     * @param coords1 First coordinate string (e.g., "37.7749,-122.4194")
+     * @param coords2 Second coordinate string (e.g., "37.7849,-122.4094")
+     * @return Distance in kilometers, or -1 if parsing fails
+     */
+    public static double calculateDistanceFromStrings(String coords1, String coords2) {
+        try {
+            String[] parts1 = coords1.split(",");
+            String[] parts2 = coords2.split(",");
+
+            if (parts1.length != 2 || parts2.length != 2) return -1;
+
+            double lat1 = Double.parseDouble(parts1[0].trim());
+            double lon1 = Double.parseDouble(parts1[1].trim());
+            double lat2 = Double.parseDouble(parts2[0].trim());
+            double lon2 = Double.parseDouble(parts2[1].trim());
+
+            return calculateDistance(lat1, lon1, lat2, lon2);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
 }

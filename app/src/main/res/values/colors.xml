@@ -10,14 +10,24 @@
 
     <!-- Text Colors -->
     <color name="primary_text">#1F2937</color>
+    <color name="primary_text_color">#1F2937</color>
     <color name="secondary_text">#E0E7FF</color>
 
     <!-- Background Colors -->
+    <color name="background_color">#F9FAFB</color>
     <color name="background_gradient_start">#667eea</color>
     <color name="background_gradient_end">#764ba2</color>
     <color name="homepage_background_gradient_start">#FF6B35</color>
     <color name="homepage_background_gradient_end">#DC143C</color>
     <color name="card_background">#FFFFFF</color>
+    <color name="light_gray">#F3F4F6</color>
+
+    <!-- Severity Colors -->
+    <color name="severity_high">#DC2626</color>
+    <color name="severity_medium">#F59E0B</color>
+    <color name="severity_low">#10B981</color>
+    <color name="severity_background">#FEF2F2</color>
+    <color name="severity_border">#FECACA</color>
 
     <!-- Status Colors -->
     <color name="success">#10B981</color>
