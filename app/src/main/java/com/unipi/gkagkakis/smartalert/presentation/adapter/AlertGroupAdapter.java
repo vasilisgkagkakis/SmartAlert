@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.LocationUtils;
 import com.unipi.gkagkakis.smartalert.model.Alert;
 import com.unipi.gkagkakis.smartalert.model.AlertGroup;
 
@@ -20,8 +21,8 @@ import java.util.Locale;
 
 public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.AlertGroupViewHolder> {
 
-    private List<AlertGroup> alertGroups;
-    private SimpleDateFormat dateFormat;
+    private final List<AlertGroup> alertGroups;
+    private final SimpleDateFormat dateFormat;
 
     public AlertGroupAdapter(List<AlertGroup> alertGroups) {
         this.alertGroups = alertGroups;
@@ -48,12 +49,12 @@ public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.Al
     }
 
     class AlertGroupViewHolder extends RecyclerView.ViewHolder {
-        private TextView textGroupTitle;
-        private TextView textGroupLocation;
-        private TextView textGroupCount;
-        private ImageView imageExpandCollapse;
-        private LinearLayout layoutGroupHeader;
-        private LinearLayout layoutAlertsList;
+        private final TextView textGroupTitle;
+        private final TextView textGroupLocation;
+        private final TextView textGroupCount;
+        private final ImageView imageExpandCollapse;
+        private final LinearLayout layoutGroupHeader;
+        private final LinearLayout layoutAlertsList;
 
         public AlertGroupViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -68,11 +69,13 @@ public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.Al
         public void bind(AlertGroup group) {
             Alert firstAlert = group.getFirstAlert();
             if (firstAlert != null) {
-                textGroupTitle.setText(firstAlert.getType() + " Alert");
-                textGroupLocation.setText(group.getGroupLocation());
+                textGroupTitle.setText(String.format("%s Alert", firstAlert.getType()));
+
+                // Parse and display human-readable location
+                displayLocationForGroup(group);
 
                 if (group.getAlertCount() > 1) {
-                    textGroupCount.setText(group.getAlertCount() + " alerts");
+                    textGroupCount.setText(String.format("%d alerts", group.getAlertCount()));
                     textGroupCount.setVisibility(View.VISIBLE);
                 } else {
                     textGroupCount.setVisibility(View.GONE);
@@ -80,7 +83,7 @@ public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.Al
 
                 // Set expand/collapse icon
                 imageExpandCollapse.setImageResource(
-                    group.isExpanded() ? R.drawable.ic_expand_less : R.drawable.ic_expand_more
+                        group.isExpanded() ? R.drawable.ic_expand_less : R.drawable.ic_expand_more
                 );
 
                 // Show/hide alerts list
@@ -100,9 +103,31 @@ public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.Al
                 // Set click listener for expand/collapse
                 layoutGroupHeader.setOnClickListener(v -> {
                     group.setExpanded(!group.isExpanded());
-                    notifyItemChanged(getAdapterPosition());
+                    notifyItemChanged(getBindingAdapterPosition());
                 });
             }
+        }
+
+        private void displayLocationForGroup(AlertGroup group) {
+            String rawLocation = group.getGroupLocation();
+
+            // Set initial text (coordinates or raw location)
+            textGroupLocation.setText(rawLocation != null ? rawLocation : "Unknown location");
+
+            // Try to get human-readable address
+            LocationUtils.parseLocationAndGetAddress(itemView.getContext(), rawLocation, new LocationUtils.GeocodeCallback() {
+                @Override
+                public void onSuccess(String address) {
+                    // Update with human-readable address
+                    textGroupLocation.setText(address);
+                }
+
+                @Override
+                public void onError(String error) {
+                    // Keep the original location text if geocoding fails
+                    // textGroupLocation already shows the raw location
+                }
+            });
         }
 
         private View createAlertView(Alert alert) {
@@ -116,15 +141,37 @@ public class AlertGroupAdapter extends RecyclerView.Adapter<AlertGroupAdapter.Al
             TextView textDate = alertView.findViewById(R.id.textAlertDate);
 
             textType.setText(alert.getType());
-            textSeverity.setText("Severity: " + alert.getSeverity());
+            textSeverity.setText(String.format("Severity: %s", alert.getSeverity()));
             textDescription.setText(alert.getDescription());
-            textLocation.setText("Location: " + alert.getLocation());
+
+            // Parse and display human-readable location for individual alerts
+            displayLocationForAlert(textLocation, alert.getLocation());
 
             if (alert.getCreatedAt() != null) {
-                textDate.setText("Created: " + dateFormat.format(alert.getCreatedAt()));
+                textDate.setText(String.format("Created: %s", dateFormat.format(alert.getCreatedAt())));
             }
 
             return alertView;
+        }
+
+        private void displayLocationForAlert(TextView textLocation, String rawLocation) {
+            // Set initial text with "Location: " prefix
+            textLocation.setText(String.format("Location: %s", rawLocation != null ? rawLocation : "Unknown"));
+
+            // Try to get human-readable address
+            LocationUtils.parseLocationAndGetAddress(itemView.getContext(), rawLocation, new LocationUtils.GeocodeCallback() {
+                @Override
+                public void onSuccess(String address) {
+                    // Update with human-readable address
+                    textLocation.setText(String.format("Location: %s", address));
+                }
+
+                @Override
+                public void onError(String error) {
+                    // Keep the original location text if geocoding fails
+                    // textLocation already shows the raw location
+                }
+            });
         }
     }
 }

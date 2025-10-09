@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.LocationUtils;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlert;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlertGroup;
 
@@ -85,7 +86,9 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             SubmittedAlert firstAlert = group.getFirstAlert();
             if (firstAlert != null) {
                 textGroupTitle.setText(String.format("%s Alert", firstAlert.getType()));
-                textGroupLocation.setText(group.getGroupLocation());
+
+                // Parse and display human-readable location
+                displayLocationForGroup(group);
 
                 if (group.getAlertCount() > 1) {
                     textGroupCount.setText(String.format("%d alerts", group.getAlertCount()));
@@ -157,6 +160,28 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             }
         }
 
+        private void displayLocationForGroup(SubmittedAlertGroup group) {
+            String rawLocation = group.getGroupLocation();
+
+            // Set initial text (coordinates or raw location)
+            textGroupLocation.setText(rawLocation != null ? rawLocation : "Unknown location");
+
+            // Try to get human-readable address
+            LocationUtils.parseLocationAndGetAddress(itemView.getContext(), rawLocation, new LocationUtils.GeocodeCallback() {
+                @Override
+                public void onSuccess(String address) {
+                    // Update with human-readable address
+                    textGroupLocation.setText(address);
+                }
+
+                @Override
+                public void onError(String error) {
+                    // Keep the original location text if geocoding fails
+                    // textGroupLocation already shows the raw location
+                }
+            });
+        }
+
         private View createAlertView(SubmittedAlert alert) {
             View alertView = LayoutInflater.from(itemView.getContext())
                     .inflate(R.layout.item_submitted_alert_detail, layoutAlertsList, false);
@@ -166,61 +191,39 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             TextView textDescription = alertView.findViewById(R.id.textAlertDescription);
             TextView textLocation = alertView.findViewById(R.id.textAlertLocation);
             TextView textDate = alertView.findViewById(R.id.textAlertDate);
-            LinearLayout layoutAlertImage = alertView.findViewById(R.id.layoutAlertImage);
-            ImageView imageAlertPhoto = alertView.findViewById(R.id.imageAlertPhoto);
 
             textType.setText(alert.getType());
             textSeverity.setText(String.format("Severity: %s", alert.getSeverity()));
             textDescription.setText(alert.getDescription());
-            textLocation.setText(String.format("Location: %s", alert.getLocation()));
+
+            // Parse and display human-readable location for individual alerts
+            displayLocationForAlert(textLocation, alert.getLocation());
 
             if (alert.getCreatedAt() != null) {
                 textDate.setText(String.format("Created: %s", dateFormat.format(alert.getCreatedAt())));
             }
 
-            // Handle image loading
-            if (alert.getImageUrl() != null && !alert.getImageUrl().isEmpty()) {
-                layoutAlertImage.setVisibility(View.VISIBLE);
-
-                // Load image using ImageLoader
-                com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
-                    itemView.getContext(),
-                    alert.getImageUrl(),
-                    imageAlertPhoto
-                );
-
-                // Set click listener to show full-size image
-                imageAlertPhoto.setOnClickListener(v -> {
-                    showFullSizeImage(alert.getImageUrl());
-                });
-            } else {
-                layoutAlertImage.setVisibility(View.GONE);
-            }
-
             return alertView;
         }
 
-        private void showFullSizeImage(String imageUrl) {
-            // Create and show full-size image dialog
-            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(itemView.getContext());
-            View dialogView = LayoutInflater.from(itemView.getContext())
-                    .inflate(android.R.layout.select_dialog_item, null);
+        private void displayLocationForAlert(TextView textLocation, String rawLocation) {
+            // Set initial text with "Location: " prefix
+            textLocation.setText(String.format("Location: %s", rawLocation != null ? rawLocation : "Unknown"));
 
-            ImageView fullSizeImageView = new ImageView(itemView.getContext());
-            fullSizeImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            fullSizeImageView.setAdjustViewBounds(true);
+            // Try to get human-readable address
+            LocationUtils.parseLocationAndGetAddress(itemView.getContext(), rawLocation, new LocationUtils.GeocodeCallback() {
+                @Override
+                public void onSuccess(String address) {
+                    // Update with human-readable address
+                    textLocation.setText(String.format("Location: %s", address));
+                }
 
-            // Load full-size image
-            com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
-                itemView.getContext(),
-                imageUrl,
-                fullSizeImageView
-            );
-
-            builder.setView(fullSizeImageView)
-                   .setTitle("Alert Image")
-                   .setPositiveButton("Close", null)
-                   .show();
+                @Override
+                public void onError(String error) {
+                    // Keep the original location text if geocoding fails
+                    // textLocation already shows the raw location
+                }
+            });
         }
     }
 }
