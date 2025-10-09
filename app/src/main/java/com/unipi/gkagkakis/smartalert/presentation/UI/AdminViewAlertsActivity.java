@@ -23,6 +23,7 @@ import com.unipi.gkagkakis.smartalert.model.Alert;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlert;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlertGroup;
 import com.unipi.gkagkakis.smartalert.presentation.adapter.SubmittedAlertGroupAdapter;
+import com.unipi.gkagkakis.smartalert.service.FCMNotificationSender;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
     private SubmittedAlertRepository submittedAlertRepository;
     private AlertRepository alertRepository;
     private List<SubmittedAlertGroup> submittedAlertGroups;
+    private FCMNotificationSender fcmNotificationSender;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +71,7 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
     private void initRepositories() {
         submittedAlertRepository = SubmittedAlertRepositoryImpl.getInstance();
         alertRepository = AlertRepositoryImpl.getInstance();
+        fcmNotificationSender = new FCMNotificationSender(this);
     }
 
     private void loadSubmittedAlerts() {
@@ -235,14 +238,37 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
     }
 
     private void sendPushNotificationToAllUsers(Alert alert) {
-        // TODO: Implement push notification functionality
-        // This would typically involve:
-        // 1. Getting all user tokens from the database
-        // 2. Creating a notification payload
-        // 3. Sending via Firebase Cloud Messaging (FCM)
+        // Parse coordinates from the alert location
+        String coordinates = CoordinatesUtil.tryParseCoordinates(alert.getLocation());
+        if (coordinates == null) {
+            Toast.makeText(this, "Cannot send notifications: Invalid location coordinates", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        // For now, just log that we would send a notification
-        System.out.println("Would send push notification for alert: " + alert.getType() + " at " + alert.getLocation());
+        // Extract latitude and longitude
+        String[] parts = coordinates.split(",");
+        if (parts.length != 2) {
+            Toast.makeText(this, "Cannot send notifications: Invalid coordinate format", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            double latitude = Double.parseDouble(parts[0].trim());
+            double longitude = Double.parseDouble(parts[1].trim());
+
+            // Send notification to nearby users
+            fcmNotificationSender.sendAlertNotificationToNearbyUsers(
+                latitude,
+                longitude,
+                alert.getType(),
+                alert.getDescription(),
+                alert.getLocation()
+            );
+
+            Toast.makeText(this, "Notifications sent to nearby users", Toast.LENGTH_SHORT).show();
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Cannot send notifications: Invalid coordinate values", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

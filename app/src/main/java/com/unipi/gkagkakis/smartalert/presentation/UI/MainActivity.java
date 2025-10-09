@@ -4,11 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
+import com.unipi.gkagkakis.smartalert.Utils.NotificationPermissionHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
@@ -31,11 +33,20 @@ public class MainActivity extends AppCompatActivity {
 
         userRepository = new UserRepositoryImpl(this);
 
+        // Initialize FCM and request notification permission
+        NotificationPermissionHelper.requestNotificationPermission(this);
+
         if (userRepository.isUserAuthenticated()) {
             checkUserTypeAndNavigate();
         } else {
             Toast.makeText(this, "Welcome! Please log in or register.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        NotificationPermissionHelper.handlePermissionResult(this, requestCode, permissions, grantResults);
     }
 
     private void checkUserTypeAndNavigate() {
