@@ -2,16 +2,21 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.CoordinatesUtil;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.data.repository.AlertRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.data.repository.SubmittedAlertRepositoryImpl;
+import com.unipi.gkagkakis.smartalert.data.service.AlertSeedService;
 import com.unipi.gkagkakis.smartalert.domain.repository.AlertRepository;
 import com.unipi.gkagkakis.smartalert.domain.repository.SubmittedAlertRepository;
 import com.unipi.gkagkakis.smartalert.model.Alert;
@@ -44,18 +49,21 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
     }
 
     private void initViews() {
+        // Set up the toolbar
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
         recyclerView = findViewById(R.id.recyclerViewAlerts);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         submittedAlertGroups = new ArrayList<>();
         adapter = new SubmittedAlertGroupAdapter(submittedAlertGroups, this);
         recyclerView.setAdapter(adapter);
-
-        // Set up toolbar
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Review Submitted Alerts");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
     }
 
     private void initRepositories() {
@@ -82,47 +90,41 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
 
     private void groupSubmittedAlerts(List<SubmittedAlert> submittedAlerts) {
         submittedAlertGroups.clear();
+        List<SubmittedAlert> remainingAlerts = new ArrayList<>(submittedAlerts);
 
-        // Group alerts by type using a Map
-        java.util.Map<String, List<SubmittedAlert>> alertsByType = new java.util.HashMap<>();
-
-        // Group all alerts by their type
-        for (SubmittedAlert alert : submittedAlerts) {
-            String alertType = alert.getType();
-            if (alertType == null || alertType.trim().isEmpty()) {
-                alertType = "Unknown"; // Handle null or empty types
-            }
-
-            if (!alertsByType.containsKey(alertType)) {
-                alertsByType.put(alertType, new ArrayList<>());
-            }
-            alertsByType.get(alertType).add(alert);
-        }
-
-        // Convert grouped alerts to SubmittedAlertGroup objects
-        for (java.util.Map.Entry<String, List<SubmittedAlert>> entry : alertsByType.entrySet()) {
-            String alertType = entry.getKey();
-            List<SubmittedAlert> alertsOfType = entry.getValue();
-
+        while (!remainingAlerts.isEmpty()) {
+            SubmittedAlert currentAlert = remainingAlerts.remove(0);
             SubmittedAlertGroup group = new SubmittedAlertGroup();
+            group.addSubmittedAlert(currentAlert);
 
-            // Add all alerts of this type to the group
-            for (SubmittedAlert alert : alertsOfType) {
-                group.addSubmittedAlert(alert);
+            // Find alerts within 5km of the current alert
+            List<SubmittedAlert> alertsToRemove = new ArrayList<>();
+            for (SubmittedAlert otherAlert : remainingAlerts) {
+                if (areAlertsNearby(currentAlert, otherAlert)) {
+                    group.addSubmittedAlert(otherAlert);
+                    alertsToRemove.add(otherAlert);
+                }
             }
 
-            // Set group location as the type name (since we're grouping by type now)
-            group.setGroupLocation(alertType + " Alerts");
+            // Remove grouped alerts from remaining alerts
+            remainingAlerts.removeAll(alertsToRemove);
+
+            // Set group location based on first alert and count
+            if (group.getAlertCount() > 1) {
+                group.setGroupLocation(currentAlert.getLocation() + " (" + group.getAlertCount() + " nearby alerts)");
+            } else {
+                group.setGroupLocation(currentAlert.getLocation());
+            }
 
             submittedAlertGroups.add(group);
         }
 
-        // Sort groups by alert type for consistent display
+        // Sort groups by creation time (most recent first)
         submittedAlertGroups.sort((group1, group2) -> {
             SubmittedAlert alert1 = group1.getFirstAlert();
             SubmittedAlert alert2 = group2.getFirstAlert();
-            if (alert1 != null && alert2 != null) {
-                return alert1.getType().compareToIgnoreCase(alert2.getType());
+            if (alert1 != null && alert2 != null && alert1.getCreatedAt() != null && alert2.getCreatedAt() != null) {
+                return alert2.getCreatedAt().compareTo(alert1.getCreatedAt());
             }
             return 0;
         });
@@ -247,5 +249,59 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_admin_view_alerts, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_seed_data) {
+            seedAlertData();
+            return true;
+        } else if (id == R.id.action_refresh) {
+            loadSubmittedAlerts();
+            Toast.makeText(this, "Refreshing alerts...", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void seedAlertData() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, "You must be logged in to seed data", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String userId = user.getUid();
+        AlertSeedService seedService = new AlertSeedService();
+
+        // Show a loading message
+        Toast.makeText(this, "Seeding alert data, please wait...", Toast.LENGTH_SHORT).show();
+
+        seedService.seedTestAlerts(userId, new AlertSeedService.SeedCallback() {
+            @Override
+            public void onSeedComplete(int successCount, int totalCount) {
+                String message = String.format("Seeded %d/%d alerts successfully", successCount, totalCount);
+                Toast.makeText(AdminViewAlertsActivity.this, message, Toast.LENGTH_LONG).show();
+
+                // Refresh the submitted alerts list to show the new data
+                loadSubmittedAlerts();
+            }
+
+            @Override
+            public void onSeedError(Exception e) {
+                Toast.makeText(AdminViewAlertsActivity.this,
+                    "Failed to seed alert data: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }
