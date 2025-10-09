@@ -256,7 +256,7 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
             double latitude = Double.parseDouble(parts[0].trim());
             double longitude = Double.parseDouble(parts[1].trim());
 
-            // Send notification to nearby users
+            // Send notification to nearby users (within 10km)
             fcmNotificationSender.sendAlertNotificationToNearbyUsers(
                 latitude,
                 longitude,
@@ -265,7 +265,7 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
                 alert.getLocation()
             );
 
-            Toast.makeText(this, "Notifications sent to nearby users", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Notifications sent to nearby users (within 10km)", Toast.LENGTH_SHORT).show();
         } catch (NumberFormatException e) {
             Toast.makeText(this, "Cannot send notifications: Invalid coordinate values", Toast.LENGTH_SHORT).show();
         }

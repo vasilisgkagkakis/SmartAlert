@@ -14,11 +14,13 @@ import com.unipi.gkagkakis.smartalert.Utils.NotificationPermissionHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
+import com.unipi.gkagkakis.smartalert.service.LocationTrackingService;
 
 public class MainActivity extends AppCompatActivity {
 
     private MaterialButton btnLogin, btnRegister;
     private UserRepository userRepository;
+    private LocationTrackingService locationTrackingService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,9 +34,13 @@ public class MainActivity extends AppCompatActivity {
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
 
         userRepository = new UserRepositoryImpl(this);
+        locationTrackingService = LocationTrackingService.getInstance(this);
 
         // Initialize FCM and request notification permission
         NotificationPermissionHelper.requestNotificationPermission(this);
+
+        // Request location permissions and start tracking
+        requestLocationPermissionsAndStartTracking();
 
         if (userRepository.isUserAuthenticated()) {
             checkUserTypeAndNavigate();
@@ -43,10 +49,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void requestLocationPermissionsAndStartTracking() {
+        if (locationTrackingService.hasLocationPermissions()) {
+            // Permissions already granted, start tracking
+            locationTrackingService.startLocationTracking();
+        } else {
+            // Request location permissions
+            locationTrackingService.requestLocationPermissions(this);
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        // Handle notification permissions
         NotificationPermissionHelper.handlePermissionResult(this, requestCode, permissions, grantResults);
+
+        // Handle location permissions
+        locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
     }
 
     private void checkUserTypeAndNavigate() {

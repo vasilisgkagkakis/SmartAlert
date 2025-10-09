@@ -14,7 +14,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,9 +47,8 @@ public class FCMNotificationSender {
         this.firestore = FirebaseFirestore.getInstance();
         this.executor = Executors.newCachedThreadPool();
 
-        // You'll need to set your Firebase project ID here
-        // You can get this from your google-services.json file
-        this.projectId = "smartalert-ed251";
+        // Set your Firebase project ID here
+        this.projectId = "smartalert-ed251"; // Replace with your actual project ID if different
     }
 
     public void sendAlertNotificationToNearbyUsers(double alertLatitude, double alertLongitude,
@@ -65,7 +63,7 @@ public class FCMNotificationSender {
                     return;
                 }
 
-                // Find nearby users and send notifications
+                // Send notification to nearby users
                 findAndNotifyNearbyUsers(accessToken, alertLatitude, alertLongitude,
                     alertType, alertDescription, locationName);
 
@@ -80,16 +78,23 @@ public class FCMNotificationSender {
         firestore.collection("users")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int totalUsers = 0;
+                    int nearbyUsers = 0;
+                    int notifiedUsers = 0;
+
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        totalUsers++;
                         try {
                             String fcmToken = document.getString("fcmToken");
                             if (fcmToken == null || fcmToken.isEmpty()) {
+                                Log.d(TAG, "Skipping user " + document.getId() + " - no FCM token");
                                 continue; // Skip users without FCM tokens
                             }
 
                             // Get user's location
                             GeoPoint userLocation = document.getGeoPoint("location");
                             if (userLocation == null) {
+                                Log.d(TAG, "Skipping user " + document.getId() + " - no location data");
                                 continue; // Skip users without location
                             }
 
@@ -99,15 +104,21 @@ public class FCMNotificationSender {
 
                             // If user is within 10km, send notification
                             if (distance <= NOTIFICATION_RADIUS_KM) {
-                                Log.d(TAG, "Sending notification to user at distance: " + distance + "km");
+                                nearbyUsers++;
+                                Log.d(TAG, "Sending notification to user " + document.getId() + " at distance: " + String.format("%.2f", distance) + "km");
                                 sendNotificationToUser(accessToken, fcmToken, alertType,
                                     alertDescription, locationName, distance);
+                                notifiedUsers++;
+                            } else {
+                                Log.d(TAG, "User " + document.getId() + " is too far away: " + String.format("%.2f", distance) + "km");
                             }
 
                         } catch (Exception e) {
                             Log.e(TAG, "Error processing user document: " + document.getId(), e);
                         }
                     }
+
+                    Log.i(TAG, "Alert processed: " + totalUsers + " total users, " + nearbyUsers + " within 10km, " + notifiedUsers + " notifications sent");
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Error fetching users", e));
     }
@@ -126,7 +137,7 @@ public class FCMNotificationSender {
                 alertType != null ? alertType : "safety",
                 locationName != null ? locationName : "a nearby location",
                 distance,
-                alertDescription != null ? "Stay alert and avoid the area if possible." : ""));
+                "Stay alert and avoid the area if possible."));
 
             // Build data payload
             data.put("alert_type", alertType != null ? alertType : "safety");
@@ -184,20 +195,6 @@ public class FCMNotificationSender {
         }
     }
 
-    private String getAccessToken() {
-        try {
-            InputStream serviceAccount = context.getAssets().open("service-account-key.json");
-            GoogleCredentials googleCredentials = GoogleCredentials
-                    .fromStream(serviceAccount)
-                    .createScoped(Arrays.asList(SCOPE));
-            googleCredentials.refresh();
-            return googleCredentials.getAccessToken().getTokenValue();
-        } catch (IOException e) {
-            Log.e(TAG, "Error getting access token", e);
-            return null;
-        }
-    }
-
     /**
      * Calculate distance between two points using Haversine formula
      */
@@ -211,6 +208,20 @@ public class FCMNotificationSender {
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return EARTH_RADIUS_KM * c;
+    }
+
+    private String getAccessToken() {
+        try {
+            InputStream serviceAccount = context.getAssets().open("service-account-key.json");
+            GoogleCredentials googleCredentials = GoogleCredentials
+                    .fromStream(serviceAccount)
+                    .createScoped(Arrays.asList(SCOPE));
+            googleCredentials.refresh();
+            return googleCredentials.getAccessToken().getTokenValue();
+        } catch (IOException e) {
+            Log.e(TAG, "Error getting access token", e);
+            return null;
+        }
     }
 
     public void setProjectId(String projectId) {
