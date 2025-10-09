@@ -40,16 +40,6 @@ public class HomepageActivity extends BaseActivity {
         btnNewAlert = findViewById(R.id.btn_new_alert);
     }
 
-    @Override
-    protected void onFabClick() {
-        // Override the FAB behavior for this activity
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            drawerLayout.openDrawer(GravityCompat.START);
-        }
-    }
-
     private void setupClickListeners() {
         btnNewAlert.setOnClickListener(v -> {
             NewAlertFragment fragment = new NewAlertFragment();

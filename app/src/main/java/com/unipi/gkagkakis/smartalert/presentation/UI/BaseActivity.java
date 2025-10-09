@@ -91,7 +91,11 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
     }
 
     protected void onFabClick() {
-        // Default implementation - can be overridden
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            drawerLayout.openDrawer(GravityCompat.START);
+        }
     }
 
     protected void setFabVisible() {
@@ -113,7 +117,6 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 finish();
                 return true;
             } else if (id == R.id.nav_home) {
-                viewModel.logout();
                 if (!(this instanceof HomepageActivity)) {
                     startActivity(new Intent(this, HomepageActivity.class));
                     finish();
