@@ -42,14 +42,6 @@ public class AdminHomepageActivity extends BaseActivity {
         btnViewAllAlerts = findViewById(R.id.btn_view_all_alerts);
     }
 
-    @Override
-    protected void onFabClick() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            drawerLayout.openDrawer(GravityCompat.START);
-        }
-    }
 
     private void setupClickListeners() {
         tvLogout.setOnClickListener(v -> viewModel.logout());

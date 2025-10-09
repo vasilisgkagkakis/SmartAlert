@@ -192,6 +192,7 @@ public class NewAlertFragment extends Fragment {
 
         ivAlertImage.setOnClickListener(v -> {
             if (imageUri != null) {
+                // Capture and blur the fragment background
                 View rootView = requireActivity().getWindow().getDecorView().getRootView();
                 rootView.setDrawingCacheEnabled(true);
                 Bitmap screenshot = Bitmap.createBitmap(rootView.getDrawingCache());

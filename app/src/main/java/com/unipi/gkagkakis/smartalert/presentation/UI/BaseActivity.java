@@ -3,7 +3,6 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.activity.OnBackPressedCallback;
@@ -19,6 +18,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.HomepageViewModel;
+
+import android.view.View;
+import android.widget.TextView;
 
 public abstract class BaseActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -61,6 +63,14 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         getLayoutInflater().inflate(layoutResId, contentFrame, true);
         setupNavigationDrawer();
         setupFAB();
+
+        // Set up user name in nav header
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            TextView tvNavUser = headerView.findViewById(R.id.tv_nav_user);
+            viewModel.getUserName().observe(this, name -> tvNavUser.setText(name));
+            viewModel.checkUserAndLoadName(); // Ensure name is loaded
+        }
     }
 
     // Rest of your existing methods remain the same...
@@ -91,16 +101,12 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
     }
 
     protected void onFabClick() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            drawerLayout.openDrawer(GravityCompat.START);
-        }
-    }
-
-    protected void setFabVisible() {
-        if (fab != null) {
-            fab.setVisibility(true ? View.VISIBLE : View.GONE);
+        if (drawerLayout != null) {
+            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                drawerLayout.closeDrawer(GravityCompat.START);
+            } else {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
         }
     }
 
@@ -117,10 +123,13 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 finish();
                 return true;
             } else if (id == R.id.nav_home) {
-                if (!(this instanceof HomepageActivity)) {
-                    startActivity(new Intent(this, HomepageActivity.class));
-                    finish();
-                }
+                getOnBackPressedDispatcher().onBackPressed();
+                return true;
+            } else if (id == R.id.nav_settings) {
+//                startActivity(new Intent(this, SettingsActivity.class));
+                return true;
+            } else if (id == R.id.nav_statistics) {
+//                startActivity(new Intent(this, StatisticsActivity.class));
                 return true;
             }
         }
