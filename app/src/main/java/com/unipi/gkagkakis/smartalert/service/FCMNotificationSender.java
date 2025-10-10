@@ -53,7 +53,7 @@ public class FCMNotificationSender {
 
     public void sendAlertNotificationToNearbyUsers(double alertLatitude, double alertLongitude,
                                                    String alertType, String alertDescription,
-                                                   String locationName) {
+                                                   String locationName, String severity) {
         executor.execute(() -> {
             try {
                 // Get access token
@@ -65,7 +65,7 @@ public class FCMNotificationSender {
 
                 // Send notification to nearby users
                 findAndNotifyNearbyUsers(accessToken, alertLatitude, alertLongitude,
-                    alertType, alertDescription, locationName);
+                    alertType, alertDescription, locationName, severity);
 
             } catch (Exception e) {
                 Log.e(TAG, "Error sending notifications", e);
@@ -74,7 +74,7 @@ public class FCMNotificationSender {
     }
 
     private void findAndNotifyNearbyUsers(String accessToken, double alertLat, double alertLng,
-                                        String alertType, String alertDescription, String locationName) {
+                                        String alertType, String alertDescription, String locationName, String severity) {
         firestore.collection("users")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -107,7 +107,7 @@ public class FCMNotificationSender {
                                 nearbyUsers++;
                                 Log.d(TAG, "Sending notification to user " + document.getId() + " at distance: " + String.format("%.2f", distance) + "km");
                                 sendNotificationToUser(accessToken, fcmToken, alertType,
-                                    alertDescription, locationName, distance);
+                                    alertDescription, locationName, severity, distance);
                                 notifiedUsers++;
                             } else {
                                 Log.d(TAG, "User " + document.getId() + " is too far away: " + String.format("%.2f", distance) + "km");
@@ -124,7 +124,7 @@ public class FCMNotificationSender {
     }
 
     private void sendNotificationToUser(String accessToken, String fcmToken, String alertType,
-                                      String alertDescription, String locationName, double distance) {
+                                      String alertDescription, String locationName, String severity, double distance) {
         try {
             JSONObject message = new JSONObject();
             JSONObject notification = new JSONObject();
@@ -133,15 +133,16 @@ public class FCMNotificationSender {
 
             // Build notification payload
             notification.put("title", "⚠️ Alert Nearby - Be Careful!");
-            notification.put("body", String.format("A %s alert has been reported at %s (%.1fkm away). %s",
+            notification.put("body", String.format("A %s alert has been reported at %s (%.1fkm away). Severity: %s",
                 alertType != null ? alertType : "safety",
                 locationName != null ? locationName : "a nearby location",
                 distance,
-                "Stay alert and avoid the area if possible."));
+                severity != null ? severity : "unknown"));
 
             // Build data payload
             data.put("alert_type", alertType != null ? alertType : "safety");
             data.put("location", locationName != null ? locationName : "nearby");
+            data.put("severity", severity != null ? severity : "unknown");
             data.put("distance", String.valueOf(distance));
             data.put("description", alertDescription != null ? alertDescription : "");
             data.put("click_action", "FLUTTER_NOTIFICATION_CLICK");

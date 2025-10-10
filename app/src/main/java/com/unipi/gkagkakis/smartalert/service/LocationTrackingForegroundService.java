@@ -39,10 +39,10 @@ public class LocationTrackingForegroundService extends Service {
     private static final String CHANNEL_ID = "location_tracking_channel";
     private static final int NOTIFICATION_ID = 2000;
 
-    // Location update intervals
-    private static final long UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    private static final long FASTEST_INTERVAL = 2 * 60 * 1000; // 2 minutes
-    private static final long MIN_DISTANCE = 50; // 50 meters
+    // Location update intervals - More aggressive for testing and real-time tracking
+    private static final long UPDATE_INTERVAL = 7 * 1000; // 7 seconds (more frequent)
+    private static final long FASTEST_INTERVAL = 5 * 1000; // 5 seconds
+    private static final float MIN_DISTANCE_METERS = 100.0f; // 100 meters minimum movement
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -50,6 +50,9 @@ public class LocationTrackingForegroundService extends Service {
     private FirebaseFirestore firestore;
     private FirebaseAuth auth;
     private NotificationManager notificationManager;
+
+    // Track last stored location to calculate distance
+    private Location lastStoredLocation;
 
     @Override
     public void onCreate() {
@@ -124,11 +127,12 @@ public class LocationTrackingForegroundService extends Service {
     }
 
     private void createLocationRequest() {
-        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, UPDATE_INTERVAL)
+        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, UPDATE_INTERVAL)
                 .setWaitForAccurateLocation(false)
-                .setMinUpdateIntervalMillis(FASTEST_INTERVAL)
-                .setMinUpdateDistanceMeters(MIN_DISTANCE)
+                .setMaxUpdateDelayMillis(UPDATE_INTERVAL) // Match the update interval
                 .build();
+
+        Log.d(TAG, "Location request created with " + UPDATE_INTERVAL/1000 + "s interval, " + MIN_DISTANCE_METERS + "m minimum distance");
     }
 
     private void createLocationCallback() {
@@ -138,19 +142,51 @@ public class LocationTrackingForegroundService extends Service {
                 super.onLocationResult(locationResult);
 
                 if (locationResult == null) {
+                    Log.w(TAG, "Location result is null");
                     return;
                 }
 
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
-                    Log.d(TAG, "Location update received: " + location.getLatitude() + ", " + location.getLongitude());
-                    updateLocationInFirestore(location.getLatitude(), location.getLongitude());
+                    Log.d(TAG, "Location update received: " + location.getLatitude() + ", " + location.getLongitude() +
+                          " (accuracy: " + location.getAccuracy() + "m, age: " + (System.currentTimeMillis() - location.getTime()) + "ms)");
 
-                    // Update notification with last update time
-                    updateNotification();
+                    // Check if we should update based on distance
+                    if (shouldUpdateLocation(location)) {
+                        updateLocationInFirestore(location.getLatitude(), location.getLongitude());
+                        lastStoredLocation = location; // Update the last stored location
+                        updateNotification();
+                    } else {
+                        Log.d(TAG, "Location update skipped - movement less than " + MIN_DISTANCE_METERS + "m");
+                    }
+                } else {
+                    Log.w(TAG, "Location in result is null");
                 }
             }
         };
+    }
+
+    /**
+     * Check if location should be updated based on minimum distance requirement
+     */
+    private boolean shouldUpdateLocation(Location newLocation) {
+        // Always update if we don't have a previously stored location
+        if (lastStoredLocation == null) {
+            Log.d(TAG, "No previous location - storing initial location");
+            return true;
+        }
+
+        // Calculate distance from last stored location
+        float distance = lastStoredLocation.distanceTo(newLocation);
+        Log.d(TAG, "Distance from last stored location: " + String.format("%.1f", distance) + "m (min required: " + MIN_DISTANCE_METERS + "m)");
+
+        // Only update if moved more than minimum distance
+        if (distance >= MIN_DISTANCE_METERS) {
+            Log.d(TAG, "Distance threshold met - updating location");
+            return true;
+        }
+
+        return false;
     }
 
     private void startLocationUpdates() {
@@ -161,8 +197,19 @@ public class LocationTrackingForegroundService extends Service {
             return;
         }
 
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
-        Log.d(TAG, "Location updates started");
+        try {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+            Log.d(TAG, "Location updates started successfully - expecting updates every " + UPDATE_INTERVAL/1000 + " seconds");
+
+            // Schedule a check to ensure location updates are working
+            new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
+                Log.d(TAG, "Location update check - service should be providing regular updates now");
+            }, UPDATE_INTERVAL + 5000); // Check 5 seconds after first expected update
+
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to request location updates", e);
+            stopSelf();
+        }
     }
 
     private void stopLocationUpdates() {

@@ -2,6 +2,7 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -13,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.CoordinatesUtil;
+import com.unipi.gkagkakis.smartalert.Utils.LocationUtils;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.data.repository.AlertRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.data.repository.SubmittedAlertRepositoryImpl;
@@ -256,16 +258,40 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
             double latitude = Double.parseDouble(parts[0].trim());
             double longitude = Double.parseDouble(parts[1].trim());
 
-            // Send notification to nearby users (within 10km)
-            fcmNotificationSender.sendAlertNotificationToNearbyUsers(
-                latitude,
-                longitude,
-                alert.getType(),
-                alert.getDescription(),
-                alert.getLocation()
-            );
+            // Convert coordinates to readable location name
+            LocationUtils.getAddressFromCoordinates(this, latitude, longitude, new LocationUtils.GeocodeCallback() {
+                @Override
+                public void onSuccess(String address) {
+                    // Use the readable address for notifications
+                    fcmNotificationSender.sendAlertNotificationToNearbyUsers(
+                        latitude,
+                        longitude,
+                        alert.getType(),
+                        alert.getDescription(),
+                        address, // Use readable address instead of coordinates
+                        alert.getSeverity() // Include severity parameter
+                    );
 
-            Toast.makeText(this, "Notifications sent to nearby users (within 10km)", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AdminViewAlertsActivity.this, "Notifications sent to nearby users (within 10km)", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e("AdminViewAlerts", "Failed to get address: " + error);
+                    // Fallback to coordinates if geocoding fails
+                    fcmNotificationSender.sendAlertNotificationToNearbyUsers(
+                        latitude,
+                        longitude,
+                        alert.getType(),
+                        alert.getDescription(),
+                        "nearby location", // Generic fallback
+                        alert.getSeverity() // Include severity parameter
+                    );
+
+                    Toast.makeText(AdminViewAlertsActivity.this, "Notifications sent to nearby users (within 10km)", Toast.LENGTH_SHORT).show();
+                }
+            });
+
         } catch (NumberFormatException e) {
             Toast.makeText(this, "Cannot send notifications: Invalid coordinate values", Toast.LENGTH_SHORT).show();
         }

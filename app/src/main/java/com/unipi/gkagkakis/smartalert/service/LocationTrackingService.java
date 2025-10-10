@@ -6,13 +6,18 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -32,6 +37,8 @@ public class LocationTrackingService {
     private FusedLocationProviderClient fusedLocationClient;
     private FirebaseFirestore firestore;
     private FirebaseAuth auth;
+    private LocationCallback singleUpdateCallback;
+    private boolean isContinuousTrackingActive = false; // Track service state
 
     private LocationTrackingService(Context context) {
         this.context = context.getApplicationContext();
@@ -105,9 +112,16 @@ public class LocationTrackingService {
             return;
         }
 
+        // Prevent multiple service instances
+        if (isContinuousTrackingActive) {
+            Log.d(TAG, "Continuous tracking already active, skipping start");
+            return;
+        }
+
         if (hasBackgroundLocationPermission()) {
             // Start the foreground service for continuous tracking
             LocationTrackingForegroundService.startService(context);
+            isContinuousTrackingActive = true;
             Log.d(TAG, "Continuous location tracking started with background permission");
         } else {
             Log.w(TAG, "Background location permission not granted, starting basic tracking only");
@@ -120,23 +134,26 @@ public class LocationTrackingService {
      * Stop continuous location tracking
      */
     public void stopContinuousLocationTracking() {
-        LocationTrackingForegroundService.stopService(context);
-        Log.d(TAG, "Continuous location tracking stopped");
+        if (isContinuousTrackingActive) {
+            LocationTrackingForegroundService.stopService(context);
+            isContinuousTrackingActive = false;
+            Log.d(TAG, "Continuous location tracking stopped");
+        }
     }
 
     /**
-     * Get current location and store in Firestore (one-time update)
+     * Get current location and store in Firestore (one-time update with fresh location)
      */
     public void updateLocationNow() {
         if (hasLocationPermissions()) {
-            getCurrentLocationAndStore();
+            requestFreshLocation();
         } else {
             Log.w(TAG, "Cannot update location - permissions not granted");
         }
     }
 
     /**
-     * Get current location and store in Firestore
+     * Get current location and store in Firestore - tries cached first, then fresh
      */
     private void getCurrentLocationAndStore() {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -150,22 +167,28 @@ public class LocationTrackingService {
                     @Override
                     public void onSuccess(Location location) {
                         if (location != null) {
-                            storeLocationInFirestore(location.getLatitude(), location.getLongitude());
+                            // Check if location is recent (less than 5 minutes old)
+                            long locationAge = System.currentTimeMillis() - location.getTime();
+                            if (locationAge < 5 * 60 * 1000) { // 5 minutes
+                                storeLocationInFirestore(location.getLatitude(), location.getLongitude());
+                            } else {
+                                Log.d(TAG, "Cached location is too old, requesting fresh location");
+                                requestFreshLocation();
+                            }
                         } else {
-                            Log.w(TAG, "Unable to get current location - location is null");
-                            // Try to request a fresh location
+                            Log.w(TAG, "No cached location available, requesting fresh location");
                             requestFreshLocation();
                         }
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to get location", e);
+                    Log.e(TAG, "Failed to get cached location", e);
                     requestFreshLocation();
                 });
     }
 
     /**
-     * Request a fresh location update
+     * Request a fresh location update using LocationRequest
      */
     private void requestFreshLocation() {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -173,18 +196,62 @@ public class LocationTrackingService {
             return;
         }
 
-        // For simplicity, we'll just try getLastLocation again after a delay
-        // In a production app, you might want to use requestLocationUpdates for fresh location
+        Log.d(TAG, "Requesting fresh location update");
+
+        // Clean up any existing callback first
+        if (singleUpdateCallback != null) {
+            fusedLocationClient.removeLocationUpdates(singleUpdateCallback);
+            singleUpdateCallback = null;
+        }
+
+        // Create a high accuracy location request for single update
+        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+                .setWaitForAccurateLocation(false)
+                .setMinUpdateIntervalMillis(1000)
+                .setMaxUpdates(1) // Only one update
+                .build();
+
+        // Create callback for single location update
+        singleUpdateCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+
+                if (locationResult != null && locationResult.getLastLocation() != null) {
+                    Location location = locationResult.getLastLocation();
+                    Log.d(TAG, "Fresh location received: " + location.getLatitude() + ", " + location.getLongitude());
+                    storeLocationInFirestore(location.getLatitude(), location.getLongitude());
+
+                    // Clean up callback after successful location
+                    cleanupSingleUpdateCallback();
+                } else {
+                    Log.w(TAG, "Failed to get fresh location - result was null");
+                    cleanupSingleUpdateCallback();
+                }
+            }
+        };
+
+        // Request single location update
+        fusedLocationClient.requestLocationUpdates(locationRequest, singleUpdateCallback, Looper.getMainLooper());
+
+        // Set a timeout to stop requesting updates after 15 seconds (reduced from 30)
         new android.os.Handler().postDelayed(() -> {
-            fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(location -> {
-                        if (location != null) {
-                            storeLocationInFirestore(location.getLatitude(), location.getLongitude());
-                        } else {
-                            Log.w(TAG, "Still unable to get location after retry");
-                        }
-                    });
-        }, 2000); // Wait 2 seconds and try again
+            if (singleUpdateCallback != null) {
+                Log.w(TAG, "Fresh location request timed out after 15 seconds");
+                cleanupSingleUpdateCallback();
+            }
+        }, 15000); // Reduced timeout to 15 seconds
+    }
+
+    /**
+     * Clean up single update callback to prevent conflicts
+     */
+    private void cleanupSingleUpdateCallback() {
+        if (singleUpdateCallback != null) {
+            fusedLocationClient.removeLocationUpdates(singleUpdateCallback);
+            singleUpdateCallback = null;
+            Log.d(TAG, "Single update callback cleaned up");
+        }
     }
 
     /**
@@ -235,8 +302,8 @@ public class LocationTrackingService {
                 (grantResults[0] == PackageManager.PERMISSION_GRANTED ||
                  (grantResults.length > 1 && grantResults[1] == PackageManager.PERMISSION_GRANTED))) {
                 Log.d(TAG, "Basic location permission granted");
-                // Start immediate location update
-                getCurrentLocationAndStore();
+                // Start immediate fresh location update
+                requestFreshLocation();
                 // Don't start continuous tracking yet - will be started separately
             } else {
                 Log.w(TAG, "Basic location permission denied");

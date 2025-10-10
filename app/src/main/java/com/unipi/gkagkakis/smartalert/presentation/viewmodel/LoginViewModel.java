@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.usecase.LoginUseCase;
+import com.unipi.gkagkakis.smartalert.domain.usecase.InitializeLocationUseCase;
 import com.unipi.gkagkakis.smartalert.data.repository.AuthRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
 
@@ -15,6 +16,7 @@ public class LoginViewModel extends AndroidViewModel {
     public final MutableLiveData<String> loginError = new MutableLiveData<>();
     private final LoginUseCase loginUseCase;
     private final UserRepository userRepository;
+    private final InitializeLocationUseCase initializeLocationUseCase;
 
     public LoginViewModel(@NonNull Application application) {
         super(application);
@@ -23,12 +25,16 @@ public class LoginViewModel extends AndroidViewModel {
                 new AuthRepositoryImpl(),
                 new UserRepositoryImpl()
         );
+        this.initializeLocationUseCase = new InitializeLocationUseCase(application);
     }
 
     public void loginUser(String email, String password) {
         loginUseCase.login(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
+                        // Initialize location tracking for the logged-in user
+                        initializeLocationUseCase.initializeUserLocation();
+
                         // Preload user data before navigating
                         userRepository.preloadUserData(new UserRepository.UserDataCallback() {
                             @Override
@@ -50,5 +56,9 @@ public class LoginViewModel extends AndroidViewModel {
 
     public UserRepository getUserRepository() {
         return userRepository;
+    }
+
+    public InitializeLocationUseCase getInitializeLocationUseCase() {
+        return initializeLocationUseCase;
     }
 }
