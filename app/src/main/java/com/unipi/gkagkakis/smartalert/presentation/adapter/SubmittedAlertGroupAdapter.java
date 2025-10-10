@@ -22,12 +22,14 @@ import java.util.Locale;
 
 public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAlertGroupAdapter.SubmittedAlertGroupViewHolder> {
 
+    // Fixed ViewHolder visibility and button click position issues
     private final List<SubmittedAlertGroup> submittedAlertGroups;
     private final SimpleDateFormat dateFormat;
     private final OnGroupActionListener listener;
 
     public interface OnGroupActionListener {
         void onAcceptGroup(SubmittedAlertGroup group, int position);
+
         void onRejectGroup(SubmittedAlertGroup group, int position);
     }
 
@@ -48,7 +50,7 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
     @Override
     public void onBindViewHolder(@NonNull SubmittedAlertGroupViewHolder holder, int position) {
         SubmittedAlertGroup group = submittedAlertGroups.get(position);
-        holder.bind(group, position);
+        holder.bind(group, listener, dateFormat, this);
     }
 
     @Override
@@ -56,7 +58,7 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
         return submittedAlertGroups.size();
     }
 
-    class SubmittedAlertGroupViewHolder extends RecyclerView.ViewHolder {
+    public static class SubmittedAlertGroupViewHolder extends RecyclerView.ViewHolder {
         private final TextView textGroupTitle;
         private final TextView textGroupLocation;
         private final TextView textGroupCount;
@@ -82,16 +84,16 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             btnReject = itemView.findViewById(R.id.btnReject);
         }
 
-        public void bind(SubmittedAlertGroup group, int position) {
+        public void bind(SubmittedAlertGroup group, OnGroupActionListener listener, SimpleDateFormat dateFormat, SubmittedAlertGroupAdapter adapter) {
             SubmittedAlert firstAlert = group.getFirstAlert();
             if (firstAlert != null) {
-                textGroupTitle.setText(String.format("%s Alert", firstAlert.getType()));
+                textGroupTitle.setText(String.format(Locale.getDefault(), "%s Alert", firstAlert.getType()));
 
                 // Parse and display human-readable location
                 displayLocationForGroup(group);
 
                 if (group.getAlertCount() > 1) {
-                    textGroupCount.setText(String.format("%d alerts", group.getAlertCount()));
+                    textGroupCount.setText(String.format(Locale.getDefault(), "%d alerts", group.getAlertCount()));
                     textGroupCount.setVisibility(View.VISIBLE);
                 } else {
                     textGroupCount.setVisibility(View.GONE);
@@ -123,7 +125,7 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
 
                 // Set expand/collapse icon
                 imageExpandCollapse.setImageResource(
-                    group.isExpanded() ? R.drawable.ic_expand_less : R.drawable.ic_expand_more
+                        group.isExpanded() ? R.drawable.ic_expand_less : R.drawable.ic_expand_more
                 );
 
                 // Show/hide alerts list
@@ -135,7 +137,7 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
                 // Add alerts to the list if expanded
                 if (group.isExpanded()) {
                     for (SubmittedAlert alert : group.getSubmittedAlerts()) {
-                        View alertView = createAlertView(alert);
+                        View alertView = createAlertView(alert, dateFormat);
                         layoutAlertsList.addView(alertView);
                     }
                 }
@@ -143,18 +145,18 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
                 // Set click listeners
                 layoutGroupHeader.setOnClickListener(v -> {
                     group.setExpanded(!group.isExpanded());
-                    notifyItemChanged(getBindingAdapterPosition());
+                    adapter.notifyItemChanged(getBindingAdapterPosition());
                 });
 
                 btnAccept.setOnClickListener(v -> {
                     if (listener != null) {
-                        listener.onAcceptGroup(group, position);
+                        listener.onAcceptGroup(group, getBindingAdapterPosition());
                     }
                 });
 
                 btnReject.setOnClickListener(v -> {
                     if (listener != null) {
-                        listener.onRejectGroup(group, position);
+                        listener.onRejectGroup(group, getBindingAdapterPosition());
                     }
                 });
             }
@@ -182,7 +184,7 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             });
         }
 
-        private View createAlertView(SubmittedAlert alert) {
+        private View createAlertView(SubmittedAlert alert, SimpleDateFormat dateFormat) {
             View alertView = LayoutInflater.from(itemView.getContext())
                     .inflate(R.layout.item_submitted_alert_detail, layoutAlertsList, false);
 
@@ -193,14 +195,14 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             TextView textDate = alertView.findViewById(R.id.textAlertDate);
 
             textType.setText(alert.getType());
-            textSeverity.setText(String.format("Severity: %s", alert.getSeverity()));
+            textSeverity.setText(String.format(Locale.getDefault(), "Severity: %s", alert.getSeverity()));
             textDescription.setText(alert.getDescription());
 
             // Parse and display human-readable location for individual alerts
             displayLocationForAlert(textLocation, alert.getLocation());
 
             if (alert.getCreatedAt() != null) {
-                textDate.setText(String.format("Created: %s", dateFormat.format(alert.getCreatedAt())));
+                textDate.setText(String.format(Locale.getDefault(), "Created: %s", dateFormat.format(alert.getCreatedAt())));
             }
 
             return alertView;
@@ -208,14 +210,14 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
 
         private void displayLocationForAlert(TextView textLocation, String rawLocation) {
             // Set initial text with "Location: " prefix
-            textLocation.setText(String.format("Location: %s", rawLocation != null ? rawLocation : "Unknown"));
+            textLocation.setText(String.format(Locale.getDefault(), "Location: %s", rawLocation != null ? rawLocation : "Unknown"));
 
             // Try to get human-readable address
             LocationUtils.parseLocationAndGetAddress(itemView.getContext(), rawLocation, new LocationUtils.GeocodeCallback() {
                 @Override
                 public void onSuccess(String address) {
                     // Update with human-readable address
-                    textLocation.setText(String.format("Location: %s", address));
+                    textLocation.setText(String.format(Locale.getDefault(), "Location: %s", address));
                 }
 
                 @Override
