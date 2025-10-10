@@ -8,7 +8,7 @@ public class SubmittedAlertGroup {
     private String groupLocation;
     private int alertCount;
     private boolean isExpanded;
-    private String status; // "PENDING", "ACCEPTED", "REJECTED"
+    private final String status; // "PENDING", "ACCEPTED", "REJECTED"
 
     public SubmittedAlertGroup() {
         this.submittedAlerts = new ArrayList<>();
@@ -16,21 +16,8 @@ public class SubmittedAlertGroup {
         this.status = "PENDING";
     }
 
-    public SubmittedAlertGroup(List<SubmittedAlert> submittedAlerts, String groupLocation) {
-        this.submittedAlerts = submittedAlerts != null ? submittedAlerts : new ArrayList<>();
-        this.groupLocation = groupLocation;
-        this.alertCount = this.submittedAlerts.size();
-        this.isExpanded = false;
-        this.status = "PENDING";
-    }
-
     public List<SubmittedAlert> getSubmittedAlerts() {
         return submittedAlerts;
-    }
-
-    public void setSubmittedAlerts(List<SubmittedAlert> submittedAlerts) {
-        this.submittedAlerts = submittedAlerts;
-        this.alertCount = submittedAlerts != null ? submittedAlerts.size() : 0;
     }
 
     public void addSubmittedAlert(SubmittedAlert submittedAlert) {
@@ -53,10 +40,6 @@ public class SubmittedAlertGroup {
         return alertCount;
     }
 
-    public void setAlertCount(int alertCount) {
-        this.alertCount = alertCount;
-    }
-
     public boolean isExpanded() {
         return isExpanded;
     }
@@ -69,23 +52,14 @@ public class SubmittedAlertGroup {
         return status;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public SubmittedAlert getFirstAlert() {
-        return submittedAlerts != null && !submittedAlerts.isEmpty() ? submittedAlerts.get(0) : null;
+        if (submittedAlerts != null && !submittedAlerts.isEmpty()) {
+            return submittedAlerts.get(0);
+        }
+        return null;
     }
 
     public boolean isPending() {
         return "PENDING".equals(status);
-    }
-
-    public boolean isAccepted() {
-        return "ACCEPTED".equals(status);
-    }
-
-    public boolean isRejected() {
-        return "REJECTED".equals(status);
     }
 }

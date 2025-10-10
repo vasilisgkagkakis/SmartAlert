@@ -1,8 +1,8 @@
 package com.unipi.gkagkakis.smartalert.presentation.UI;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,30 +15,21 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
-import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.unipi.gkagkakis.smartalert.R;
-import com.unipi.gkagkakis.smartalert.Utils.BlurHelper;
 import com.unipi.gkagkakis.smartalert.Utils.CoordinatesUtil;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.AlertViewModel;
-
-import android.location.Location;
+import com.unipi.gkagkakis.smartalert.presentation.viewmodel.NewAlertViewModel;
 
 public class NewAlertFragment extends Fragment {
     private static final int PICK_IMAGE_REQUEST = 1;
@@ -51,28 +42,33 @@ public class NewAlertFragment extends Fragment {
     private MaterialButton btnCreateAlert, btnCancel;
     private MaterialButton btnDeleteImage;
 
-    // Location: Fused client and permission launcher
-    private FusedLocationProviderClient fusedLocationClient;
+    // ViewModels following MVVM pattern
+    private AlertViewModel alertViewModel;
+    private NewAlertViewModel newAlertViewModel;
+
+    // Location permission launcher
     private ActivityResultLauncher<String[]> locationPermsLauncher;
 
     // Guard to avoid recursive TextWatcher updates
     private boolean isUpdatingLocation = false;
 
-    private AlertViewModel alertViewModel;
-
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        // Initialize ViewModels
         alertViewModel = new ViewModelProvider(requireActivity()).get(AlertViewModel.class);
+        newAlertViewModel = new ViewModelProvider(this).get(NewAlertViewModel.class);
+
+        // Setup location permission launcher
         locationPermsLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
                 result -> {
                     boolean fine = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION));
                     boolean coarse = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
                     if (fine || coarse) {
-                        fetchCurrentLocation(fine);
+                        // Permissions granted, request location through ViewModel
+                        newAlertViewModel.requestCurrentLocation();
                     } else {
                         Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_SHORT).show();
                     }
@@ -88,9 +84,9 @@ public class NewAlertFragment extends Fragment {
         setupDropdowns();
         setupLocationAutoParse();
         setupClickListeners();
-        observeViewModel();
+        observeViewModels();
 
-        // Long‑press the location field to use current device location
+        // Long-press the location field to use current device location
         etLocation.setOnLongClickListener(v -> {
             requestLocationThenFill();
             return true;
@@ -163,7 +159,8 @@ public class NewAlertFragment extends Fragment {
         });
     }
 
-    private void observeViewModel() {
+    private void observeViewModels() {
+        // Observe AlertViewModel (existing alert creation logic)
         alertViewModel.getSaving().observe(getViewLifecycleOwner(), isSaving -> {
             if (isSaving != null) {
                 btnCreateAlert.setEnabled(!isSaving);
@@ -173,14 +170,13 @@ public class NewAlertFragment extends Fragment {
 
         alertViewModel.getUploadProgress().observe(getViewLifecycleOwner(), progress -> {
             if (progress != null && progress > 0 && progress < 100) {
-                btnCreateAlert.setText("Uploading... " + progress + "%");
+                btnCreateAlert.setText(R.string.uploading + progress + R.string.percent);
             }
         });
 
         alertViewModel.getError().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
-                // Don't pop back stack if there's an error
             }
         });
 
@@ -188,7 +184,33 @@ public class NewAlertFragment extends Fragment {
             if (alertId != null && !alertId.isEmpty()) {
                 Toast.makeText(requireContext(), "Alert created successfully!", Toast.LENGTH_SHORT).show();
                 requireActivity().getSupportFragmentManager().popBackStack();
-                alertViewModel.clearResult(); // Clear the result after handling
+                alertViewModel.clearResult();
+            }
+        });
+
+        // Observe NewAlertViewModel for location operations
+        newAlertViewModel.currentLocation.observe(getViewLifecycleOwner(), location -> {
+            if (location != null && !location.isEmpty()) {
+                isUpdatingLocation = true;
+                etLocation.setText(location);
+                etLocation.setSelection(location.length());
+                isUpdatingLocation = false;
+                Toast.makeText(requireContext(), "Location filled from device", Toast.LENGTH_SHORT).show();
+                newAlertViewModel.clearCurrentLocation();
+            }
+        });
+
+        newAlertViewModel.locationError.observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                newAlertViewModel.clearLocationError();
+            }
+        });
+
+        newAlertViewModel.locationPermissionRequired.observe(getViewLifecycleOwner(), required -> {
+            if (required != null && required) {
+                requestLocationPermissions();
+                newAlertViewModel.clearLocationPermissionRequired();
             }
         });
     }
@@ -202,7 +224,6 @@ public class NewAlertFragment extends Fragment {
                 String description = etAlertDescription.getText() != null ? etAlertDescription.getText().toString().trim() : "";
                 Uri imageUriToPass = (imageUri != null) ? imageUri : null;
                 alertViewModel.createAlert(requireContext(), alertType, severity, location, description, imageUriToPass);
-                // Don't show success toast or pop back stack immediately - wait for ViewModel response
             }
         });
 
@@ -217,34 +238,38 @@ public class NewAlertFragment extends Fragment {
             imageUri = null;
             ivAlertImage.setImageDrawable(null);
             ivAlertImage.setVisibility(View.GONE);
-            btnSelectImage.setText("Add Image");
+            btnSelectImage.setText(R.string.add_image1);
             btnDeleteImage.setVisibility(View.GONE);
         });
 
         ivAlertImage.setOnClickListener(v -> {
             if (imageUri != null) {
-                // Capture and blur the fragment background
-                View rootView = requireActivity().getWindow().getDecorView().getRootView();
-                rootView.setDrawingCacheEnabled(true);
-                Bitmap screenshot = Bitmap.createBitmap(rootView.getDrawingCache());
-                rootView.setDrawingCacheEnabled(false);
-
-                Bitmap blurred = BlurHelper.blur(requireContext(), screenshot, 15);
-                ImagePreviewDialogFragment dialog = ImagePreviewDialogFragment.newInstance(imageUri, blurred);
-                dialog.show(requireActivity().getSupportFragmentManager(), "image_preview");
+                showImagePreview();
             }
         });
+    }
+
+    private void showImagePreview() {
+        // Use ViewModel to create blurred screenshot (following clean architecture)
+        View rootView = requireActivity().getWindow().getDecorView().getRootView();
+        Bitmap blurred = newAlertViewModel.createBlurredScreenshot(rootView);
+
+        ImagePreviewDialogFragment dialog = ImagePreviewDialogFragment.newInstance(imageUri, blurred);
+        dialog.show(requireActivity().getSupportFragmentManager(), "image_preview");
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == getActivity().RESULT_OK && data != null) {
-            imageUri = data.getData();
-            ivAlertImage.setImageURI(imageUri);
-            ivAlertImage.setVisibility(View.VISIBLE);
-            btnSelectImage.setText("Change Image");
-            btnDeleteImage.setVisibility(View.VISIBLE);
+        if (requestCode == PICK_IMAGE_REQUEST) {
+            getActivity();
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                imageUri = data.getData();
+                ivAlertImage.setImageURI(imageUri);
+                ivAlertImage.setVisibility(View.VISIBLE);
+                btnSelectImage.setText(R.string.change_image);
+                btnDeleteImage.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -283,46 +308,19 @@ public class NewAlertFragment extends Fragment {
     }
 
     private void requestLocationThenFill() {
-        boolean fineGranted = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        boolean coarseGranted = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-
-        if (fineGranted || coarseGranted) {
-            fetchCurrentLocation(fineGranted);
+        if (newAlertViewModel.hasLocationPermissions()) {
+            // Permissions already granted, request location through ViewModel
+            newAlertViewModel.requestCurrentLocation();
         } else {
-            locationPermsLauncher.launch(new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            });
+            // Request permissions first
+            requestLocationPermissions();
         }
     }
 
-    private void fetchCurrentLocation(boolean precise) {
-        int priority = precise ? Priority.PRIORITY_HIGH_ACCURACY : Priority.PRIORITY_BALANCED_POWER_ACCURACY;
-        CancellationTokenSource cts = new CancellationTokenSource();
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        fusedLocationClient.getCurrentLocation(priority, cts.getToken())
-                .addOnSuccessListener(location -> {
-                    if (location != null) {
-                        fillLocationFromDevice(location);
-                    } else {
-                        Toast.makeText(requireContext(), "Could not get location", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(requireContext(), "Location error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                );
-    }
-
-    private void fillLocationFromDevice(@NonNull Location loc) {
-        String normalized = CoordinatesUtil.formatLatLng(loc.getLatitude(), loc.getLongitude());
-        isUpdatingLocation = true;
-        etLocation.setText(normalized);
-        etLocation.setSelection(normalized.length());
-        isUpdatingLocation = false;
-        Toast.makeText(requireContext(), "Location filled from device", Toast.LENGTH_SHORT).show();
+    private void requestLocationPermissions() {
+        locationPermsLauncher.launch(new String[]{
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+        });
     }
 }
-

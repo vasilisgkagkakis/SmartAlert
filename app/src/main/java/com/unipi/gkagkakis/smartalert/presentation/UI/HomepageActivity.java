@@ -3,26 +3,21 @@ package com.unipi.gkagkakis.smartalert.presentation.UI;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
-
-import androidx.core.view.GravityCompat;
 
 import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.HomepageViewModel;
-import com.unipi.gkagkakis.smartalert.service.LocationTrackingService;
 
 public class HomepageActivity extends BaseActivity {
 
     private TextView tvUserName;
     private MaterialButton btnNewAlert;
-    private TextView tvLogout;
     private HomepageViewModel viewModel;
-    private LocationTrackingService locationTrackingService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,58 +25,38 @@ public class HomepageActivity extends BaseActivity {
         setContentViewWithDrawer(R.layout.activity_homepage);
         StatusBarHelper.hideStatusBar(this);
 
-        viewModel = new ViewModelProvider(this).get(HomepageViewModel.class);
-        locationTrackingService = LocationTrackingService.getInstance(this);
-
         initViews();
+        setupViewModel();
         setupClickListeners();
         observeViewModel();
 
+        // Load user data and update location through ViewModel
         viewModel.checkUserAndLoadName();
-
-        // Update user location when they open the homepage
-        updateUserLocation();
+        viewModel.updateUserLocation(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Update location when user returns to the app
-        updateUserLocation();
-    }
-
-    private void updateUserLocation() {
-        if (locationTrackingService.hasLocationPermissions()) {
-            // Start continuous tracking if we have permissions
-            if (locationTrackingService.hasBackgroundLocationPermission()) {
-                locationTrackingService.startContinuousLocationTracking();
-            } else {
-                // Request background permission and start basic tracking
-                locationTrackingService.requestBackgroundLocationPermission(this);
-                locationTrackingService.updateLocationNow();
-            }
-        } else {
-            // Request permissions if not granted
-            locationTrackingService.requestLocationPermissions(this);
-        }
+        // Update location when user returns to the app through ViewModel
+        viewModel.updateUserLocation(this);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
 
-        // After handling basic location permissions, request background permission
-        if (requestCode == LocationTrackingService.LOCATION_PERMISSION_REQUEST_CODE) {
-            if (locationTrackingService.hasLocationPermissions()) {
-                locationTrackingService.requestBackgroundLocationPermission(this);
-            }
-        }
+        // Handle permission results through ViewModel (following clean architecture)
+        viewModel.handlePermissionResult(this, requestCode, permissions, grantResults);
     }
 
     private void initViews() {
         tvUserName = findViewById(R.id.tv_user_name);
         btnNewAlert = findViewById(R.id.btn_new_alert);
+    }
+
+    private void setupViewModel() {
+        viewModel = new ViewModelProvider(this).get(HomepageViewModel.class);
     }
 
     private void setupClickListeners() {
@@ -93,16 +68,40 @@ public class HomepageActivity extends BaseActivity {
                     .addToBackStack(null)
                     .commit();
         });
-
     }
 
     private void observeViewModel() {
-        viewModel.getUserName().observe(this, name -> tvUserName.setText(name));
+        // Observe user name
+        viewModel.getUserName().observe(this, name -> {
+            if (name != null) {
+                tvUserName.setText(name);
+            }
+        });
 
+        // Observe navigation to login
         viewModel.getShouldNavigateToLogin().observe(this, shouldNavigate -> {
-            if (shouldNavigate) {
+            if (shouldNavigate != null && shouldNavigate) {
                 startActivity(new Intent(this, LoginActivity.class));
                 finish();
+                // Clear navigation state to prevent repeated navigation
+                viewModel.clearNavigationToLogin();
+            }
+        });
+
+        // Observe errors
+        viewModel.error.observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                viewModel.clearError();
+            }
+        });
+
+        // Observe location permission requirements
+        viewModel.locationPermissionRequired.observe(this, required -> {
+            if (required != null && required) {
+                // Request location permissions through ViewModel
+                viewModel.requestLocationPermissions(this);
+                viewModel.clearLocationPermissionRequired();
             }
         });
     }

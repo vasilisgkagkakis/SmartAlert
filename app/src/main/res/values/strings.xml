@@ -34,4 +34,10 @@
     <string name="default_notification_channel_id">smart_alert_notifications</string>
     <string name="default_notification_channel_name">Smart Alert Notifications</string>
     <string name="default_notification_channel_description">Notifications for nearby alerts</string>
+    <string name="logging_in">Logging in…</string>
+    <string name="registering">Registering…</string>
+    <string name="uploading">"Uploading… "</string>
+    <string name="percent">%</string>
+    <string name="add_image1">Add Image</string>
+    <string name="change_image">Change Image</string>
 </resources>

@@ -18,16 +18,13 @@ import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.LoginViewModel;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
 
-import android.util.Log;
-
-import static android.os.Looper.getMainLooper;
-
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin;
     private TextView tvRegister, tvForgotPassword;
     private LoginViewModel viewModel;
+    private boolean isRedirecting = false; // Add flag to track redirect state
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,10 +52,15 @@ public class LoginActivity extends AppCompatActivity {
         // Observe login success
         viewModel.loginSuccess.observe(this, success -> {
             if (success != null && success) {
+                // Set redirecting flag to prevent isLoading observer from interfering
+                isRedirecting = true;
+
+                // Keep button disabled during redirect
+                btnLogin.setEnabled(false);
+                btnLogin.setText(R.string.logging_in);
+
                 Toast.makeText(this, "Login successful! Redirecting...", Toast.LENGTH_SHORT).show();
-                new Handler(getMainLooper()).postDelayed(() -> {
-                    handleLoginSuccess();
-                }, 2000);
+                new Handler(getMainLooper()).postDelayed(this::handleLoginSuccess, 2000);
                 // Clear success state to prevent repeated navigation
                 viewModel.clearLoginSuccess();
             }
@@ -94,9 +96,9 @@ public class LoginActivity extends AppCompatActivity {
 
         // Observe loading state
         viewModel.isLoading.observe(this, isLoading -> {
-            if (isLoading != null) {
+            if (isLoading != null && !isRedirecting) { // Check redirecting flag
                 btnLogin.setEnabled(!isLoading);
-                btnLogin.setText(isLoading ? "Logging in..." : "Login");
+                btnLogin.setText(isLoading ? R.string.logging_in : R.string.login);
             }
         });
     }
@@ -153,6 +155,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleLoginSuccess() {
+        isRedirecting = true; // Set redirecting flag
+
         // Initialize FCM token for the logged-in user (handles regeneration if needed)
         com.unipi.gkagkakis.smartalert.service.FCMTokenManager.getInstance(this).initializeToken();
 

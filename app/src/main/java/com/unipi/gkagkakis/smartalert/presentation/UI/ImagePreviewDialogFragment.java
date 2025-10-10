@@ -11,38 +11,59 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import com.unipi.gkagkakis.smartalert.R;
 
+/**
+ * Dialog fragment for previewing images with blurred background
+ * Supports both Uri and Bitmap image sources following clean architecture
+ */
 public class ImagePreviewDialogFragment extends DialogFragment {
-    private static final String ARG_IMAGE_URI = "image_uri";
     private static final String ARG_HAS_BITMAP = "has_bitmap";
-    private Bitmap imageBitmap;
-    private Bitmap blurredBackground;
+    private static final String ARG_IMAGE_URI = "image_uri";
 
-    public static ImagePreviewDialogFragment newInstance(Uri uri, Bitmap blurredBg) {
-        ImagePreviewDialogFragment frag = new ImagePreviewDialogFragment();
+    // Temporary storage for bitmap - will be cleared after use
+    private Bitmap tempImageBitmap;
+    private Bitmap tempBlurredBackground;
+
+    /**
+     * Creates instance with Uri image source
+     */
+    public static ImagePreviewDialogFragment newInstance(Uri imageUri, Bitmap blurredBackground) {
+        ImagePreviewDialogFragment fragment = new ImagePreviewDialogFragment();
         Bundle args = new Bundle();
-        args.putParcelable(ARG_IMAGE_URI, uri);
+        args.putParcelable(ARG_IMAGE_URI, imageUri);
         args.putBoolean(ARG_HAS_BITMAP, false);
-        frag.setArguments(args);
-        frag.blurredBackground = blurredBg;
-        return frag;
+        fragment.setArguments(args);
+        fragment.tempBlurredBackground = blurredBackground;
+        return fragment;
     }
 
-    public static ImagePreviewDialogFragment newInstance(Bitmap bitmap, Bitmap blurredBg) {
-        ImagePreviewDialogFragment frag = new ImagePreviewDialogFragment();
+    /**
+     * Creates instance with Bitmap image source
+     */
+    public static ImagePreviewDialogFragment newInstance(Bitmap imageBitmap, Bitmap blurredBackground) {
+        ImagePreviewDialogFragment fragment = new ImagePreviewDialogFragment();
         Bundle args = new Bundle();
         args.putBoolean(ARG_HAS_BITMAP, true);
-        frag.setArguments(args);
-        frag.imageBitmap = bitmap;
-        frag.blurredBackground = blurredBg;
-        return frag;
+        fragment.setArguments(args);
+        fragment.tempImageBitmap = imageBitmap;
+        fragment.tempBlurredBackground = blurredBackground;
+        return fragment;
     }
 
     @Override
     public void onStart() {
         super.onStart();
+        setupDialogWindow();
+    }
+
+    private void setupDialogWindow() {
         if (getDialog() != null && getDialog().getWindow() != null) {
-            getDialog().getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            getDialog().getWindow().setBackgroundDrawable(new BitmapDrawable(getResources(), blurredBackground));
+            Window window = getDialog().getWindow();
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+            // Set blurred background if available
+            if (tempBlurredBackground != null) {
+                window.setBackgroundDrawable(new BitmapDrawable(getResources(), tempBlurredBackground));
+            }
         }
     }
 
@@ -52,19 +73,41 @@ public class ImagePreviewDialogFragment extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_image_preview, container, false);
 
         ImageView imageView = view.findViewById(R.id.iv_preview);
+        setupImageView(imageView);
 
+        // Set click listener to dismiss dialog
+        imageView.setOnClickListener(v -> dismiss());
+
+        return view;
+    }
+
+    private void setupImageView(ImageView imageView) {
         Bundle args = getArguments();
-        boolean hasBitmap = args != null && args.getBoolean(ARG_HAS_BITMAP, false);
-        if (hasBitmap) {
-            imageView.setImageBitmap(imageBitmap);
+        if (args == null) return;
+
+        boolean hasBitmap = args.getBoolean(ARG_HAS_BITMAP, false);
+
+        if (hasBitmap && tempImageBitmap != null) {
+            // Display bitmap image
+            imageView.setImageBitmap(tempImageBitmap);
         } else {
-            Uri imageUri = args != null ? args.getParcelable(ARG_IMAGE_URI) : null;
+            // Display Uri image
+            Uri imageUri = args.getParcelable(ARG_IMAGE_URI);
             if (imageUri != null) {
                 imageView.setImageURI(imageUri);
             }
         }
+    }
 
-        imageView.setOnClickListener(v -> dismiss());
-        return view;
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Clear bitmap references to prevent memory leaks
+        clearBitmapReferences();
+    }
+
+    private void clearBitmapReferences() {
+        tempImageBitmap = null;
+        tempBlurredBackground = null;
     }
 }

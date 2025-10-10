@@ -14,14 +14,13 @@ public class SubmittedAlert {
     private String type;
     private String severity;
     private String location;
-    private String description;
-    private String imageUrl;
-    private String userId;
+    private final String description;
+    private final String imageUrl;
+    private final String userId;
 
     @ServerTimestamp
-    private Date createdAt;
+    private final Date createdAt;
 
-    public SubmittedAlert() {}
 
     public SubmittedAlert(String id, String type, String severity, String location, String description,
                  String imageUrl, String userId, Date createdAt) {
@@ -48,14 +47,10 @@ public class SubmittedAlert {
     public void setLocation(String location) { this.location = location; }
 
     public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
 
     public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
 
     public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 }

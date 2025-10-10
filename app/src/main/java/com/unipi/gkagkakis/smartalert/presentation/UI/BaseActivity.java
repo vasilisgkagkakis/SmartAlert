@@ -49,12 +49,6 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         });
     }
 
-    // For activities WITHOUT drawer (like MainActivity)
-    protected void setContentViewWithoutDrawer(int layoutResId) {
-        useDrawer = false;
-        super.setContentView(layoutResId);
-    }
-
     // For activities WITH drawer
     protected void setContentViewWithDrawer(int layoutResId) {
         useDrawer = true;
@@ -68,12 +62,11 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         if (navigationView != null) {
             View headerView = navigationView.getHeaderView(0);
             TextView tvNavUser = headerView.findViewById(R.id.tv_nav_user);
-            viewModel.getUserName().observe(this, name -> tvNavUser.setText(name));
+            viewModel.userNameOnly.observe(this, tvNavUser::setText);
             viewModel.checkUserAndLoadName(); // Ensure name is loaded
         }
     }
 
-    // Rest of your existing methods remain the same...
     protected void setupNavigationDrawer() {
         if (!useDrawer) return;
 

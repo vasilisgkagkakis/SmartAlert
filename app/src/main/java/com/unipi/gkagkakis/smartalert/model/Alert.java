@@ -48,14 +48,6 @@ public class Alert {
     public void setLocation(String location) { this.location = location; }
 
     public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
 
     public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 }

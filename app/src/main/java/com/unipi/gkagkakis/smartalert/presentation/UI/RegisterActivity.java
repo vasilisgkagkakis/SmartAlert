@@ -17,8 +17,6 @@ import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.RegisterViewModel;
 
-import static android.os.Looper.getMainLooper;
-
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputEditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
@@ -54,9 +52,14 @@ public class RegisterActivity extends AppCompatActivity {
         // Observe registration success
         viewModel.registrationSuccess.observe(this, success -> {
             if (success != null && success) {
+
+                // Keep button disabled during redirect
+                btnRegister.setEnabled(false);
+                btnRegister.setText(R.string.registering);
+
                 Toast.makeText(this, "Registration successful! Redirecting...", Toast.LENGTH_SHORT).show();
                 new Handler(getMainLooper()).postDelayed(() -> {
-                    startActivity(new Intent(this, LoginActivity.class));
+                    startActivity(new Intent(this, HomepageActivity.class));
                     finish();
                 }, 2000);
                 // Clear success state to prevent repeated navigation
@@ -77,7 +80,7 @@ public class RegisterActivity extends AppCompatActivity {
         viewModel.isLoading.observe(this, isLoading -> {
             if (isLoading != null) {
                 btnRegister.setEnabled(!isLoading);
-                btnRegister.setText(isLoading ? "Registering..." : "Register");
+                btnRegister.setText(isLoading ? R.string.registering : R.string.register);
             }
         });
     }
