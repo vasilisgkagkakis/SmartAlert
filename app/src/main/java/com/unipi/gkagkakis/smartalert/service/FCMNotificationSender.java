@@ -91,16 +91,17 @@ public class FCMNotificationSender {
                                 continue; // Skip users without FCM tokens
                             }
 
-                            // Get user's location
-                            GeoPoint userLocation = document.getGeoPoint("location");
-                            if (userLocation == null) {
-                                Log.d(TAG, "Skipping user " + document.getId() + " - no location data");
-                                continue; // Skip users without location
+                            // Get user's location from separate latitude/longitude fields
+                            Double userLatitude = document.getDouble("latitude");
+                            Double userLongitude = document.getDouble("longitude");
+
+                            if (userLatitude == null || userLongitude == null) {
+                                Log.d(TAG, "Skipping user " + document.getId() + " - no latitude/longitude data");
+                                continue; // Skip users without location coordinates
                             }
 
                             // Calculate distance
-                            double distance = calculateDistance(alertLat, alertLng,
-                                userLocation.getLatitude(), userLocation.getLongitude());
+                            double distance = calculateDistance(alertLat, alertLng, userLatitude, userLongitude);
 
                             // If user is within 10km, send notification
                             if (distance <= NOTIFICATION_RADIUS_KM) {

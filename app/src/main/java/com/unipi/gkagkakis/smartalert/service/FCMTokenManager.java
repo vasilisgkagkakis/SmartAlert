@@ -37,6 +37,11 @@ public class FCMTokenManager {
     }
 
     public void initializeToken() {
+        // First check if current user already has a valid token in Firestore
+        if (auth.getCurrentUser() != null) {
+            checkAndRegenerateTokenIfNeeded();
+        }
+
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
@@ -51,6 +56,59 @@ public class FCMTokenManager {
                     saveToken(token);
                     sendTokenToServer(token);
                 });
+    }
+
+    private void checkAndRegenerateTokenIfNeeded() {
+        String userId = auth.getCurrentUser().getUid();
+
+        firestore.collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    String existingToken = document.getString("fcmToken");
+                    String clearedReason = document.getString("tokenClearedReason");
+
+                    if (existingToken == null && clearedReason != null) {
+                        Log.i(TAG, "User " + userId + " lost token due to: " + clearedReason + ". Regenerating new token.");
+
+                        // Force regenerate a new FCM token - skip deleteToken since token is already null
+                        FirebaseMessaging.getInstance().getToken()
+                                .addOnCompleteListener(tokenTask -> {
+                                    if (tokenTask.isSuccessful()) {
+                                        String newToken = tokenTask.getResult();
+                                        Log.i(TAG, "Generated new FCM token for user " + userId + ": " + newToken);
+
+                                        saveToken(newToken);
+
+                                        // Clear the conflict reason and save new token
+                                        Map<String, Object> tokenData = new HashMap<>();
+                                        tokenData.put("fcmToken", newToken);
+                                        tokenData.put("timestamp", System.currentTimeMillis());
+                                        tokenData.put("platform", "android");
+                                        tokenData.put("deviceId", getDeviceId());
+                                        tokenData.put("tokenClearedReason", null);
+                                        tokenData.put("tokenClearedAt", null);
+                                        tokenData.put("tokenRegeneratedAt", System.currentTimeMillis());
+
+                                        firestore.collection("users")
+                                                .document(userId)
+                                                .update(tokenData)
+                                                .addOnSuccessListener(aVoid ->
+                                                        Log.i(TAG, "New FCM token saved for user " + userId))
+                                                .addOnFailureListener(e ->
+                                                        Log.e(TAG, "Failed to save new FCM token", e));
+                                    } else {
+                                        Log.e(TAG, "Failed to generate new FCM token", tokenTask.getException());
+                                    }
+                                });
+                    } else if (existingToken != null) {
+                        Log.d(TAG, "User " + userId + " already has valid token: " + existingToken.substring(0, Math.min(20, existingToken.length())) + "...");
+                    } else {
+                        Log.d(TAG, "User " + userId + " has no token, will get one through normal flow");
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "Failed to check user token status", e));
     }
 
     public void saveToken(String token) {
@@ -70,10 +128,14 @@ public class FCMTokenManager {
 
         String userId = auth.getCurrentUser().getUid();
 
+        // First check if this token is already used by another user
+        checkForTokenConflict(token, userId);
+
         Map<String, Object> tokenData = new HashMap<>();
         tokenData.put("fcmToken", token);
         tokenData.put("timestamp", System.currentTimeMillis());
         tokenData.put("platform", "android");
+        tokenData.put("deviceId", getDeviceId()); // Add device identifier
 
         firestore.collection("users")
                 .document(userId)
@@ -88,6 +150,44 @@ public class FCMTokenManager {
                             .addOnSuccessListener(aVoid2 -> Log.d(TAG, "FCM token set in Firestore"))
                             .addOnFailureListener(e2 -> Log.e(TAG, "Failed to set FCM token in Firestore", e2));
                 });
+    }
+
+    private void checkForTokenConflict(String token, String currentUserId) {
+        firestore.collection("users")
+                .whereEqualTo("fcmToken", token)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        String existingUserId = document.getId();
+                        if (!existingUserId.equals(currentUserId)) {
+                            Log.w(TAG, "FCM Token conflict detected! Token is shared between users: "
+                                    + currentUserId + " and " + existingUserId);
+
+                            // Clear the token from the other user
+                            Map<String, Object> clearToken = new HashMap<>();
+                            clearToken.put("fcmToken", null);
+                            clearToken.put("tokenClearedReason", "Token conflict detected");
+                            clearToken.put("tokenClearedAt", System.currentTimeMillis());
+
+                            firestore.collection("users")
+                                    .document(existingUserId)
+                                    .update(clearToken)
+                                    .addOnSuccessListener(aVoid ->
+                                            Log.i(TAG, "Cleared conflicting token from user: " + existingUserId))
+                                    .addOnFailureListener(e ->
+                                            Log.e(TAG, "Failed to clear conflicting token", e));
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to check for token conflicts", e));
+    }
+
+    private String getDeviceId() {
+        // Create a unique device identifier
+        return android.provider.Settings.Secure.getString(
+                context.getContentResolver(),
+                android.provider.Settings.Secure.ANDROID_ID
+        );
     }
 
     public void deleteToken() {
@@ -113,5 +213,56 @@ public class FCMTokenManager {
                         Log.e(TAG, "Failed to delete FCM token", task.getException());
                     }
                 });
+    }
+
+    /**
+     * Ensure user document has all required fields for consistency
+     */
+    public void ensureUserDataConsistency() {
+        if (auth.getCurrentUser() == null) {
+            Log.w(TAG, "User not authenticated, cannot ensure data consistency");
+            return;
+        }
+
+        String userId = auth.getCurrentUser().getUid();
+
+        // First check what data exists
+        firestore.collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    Map<String, Object> updateData = new HashMap<>();
+
+                    // Ensure FCM token exists
+                    if (!document.contains("fcmToken") || document.getString("fcmToken") == null) {
+                        String currentToken = getToken();
+                        if (currentToken != null) {
+                            updateData.put("fcmToken", currentToken);
+                        }
+                    }
+
+                    // Ensure platform exists
+                    if (!document.contains("platform")) {
+                        updateData.put("platform", "android");
+                    }
+
+                    // Ensure timestamp exists
+                    if (!document.contains("timestamp")) {
+                        updateData.put("timestamp", System.currentTimeMillis());
+                    }
+
+                    // Update only if there are missing fields
+                    if (!updateData.isEmpty()) {
+                        firestore.collection("users")
+                                .document(userId)
+                                .update(updateData)
+                                .addOnSuccessListener(aVoid ->
+                                        Log.d(TAG, "User data consistency ensured"))
+                                .addOnFailureListener(e ->
+                                        Log.e(TAG, "Failed to ensure user data consistency", e));
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "Failed to check user document for consistency", e));
     }
 }

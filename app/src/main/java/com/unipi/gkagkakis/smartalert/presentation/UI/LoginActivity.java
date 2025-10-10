@@ -119,6 +119,9 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleLoginSuccess() {
+        // Initialize FCM token for the logged-in user (handles regeneration if needed)
+        com.unipi.gkagkakis.smartalert.service.FCMTokenManager.getInstance(this).initializeToken();
+
         viewModel.getUserRepository().checkIsAdmin(new UserRepository.IsAdminCallback() {
             @Override
             public void onIsAdminResult(boolean isAdmin) {
