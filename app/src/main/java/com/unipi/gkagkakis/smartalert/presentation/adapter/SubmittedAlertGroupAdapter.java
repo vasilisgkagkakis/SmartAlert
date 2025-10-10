@@ -1,5 +1,6 @@
 package com.unipi.gkagkakis.smartalert.presentation.adapter;
 
+import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -194,9 +195,16 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             TextView textLocation = alertView.findViewById(R.id.textAlertLocation);
             TextView textDate = alertView.findViewById(R.id.textAlertDate);
 
+            // Add image handling
+            LinearLayout layoutAlertImage = alertView.findViewById(R.id.layoutAlertImage);
+            ImageView imageAlertPhoto = alertView.findViewById(R.id.imageAlertPhoto);
+
             textType.setText(alert.getType());
             textSeverity.setText(String.format(Locale.getDefault(), "Severity: %s", alert.getSeverity()));
             textDescription.setText(alert.getDescription());
+
+            // Handle image display
+            handleAlertImage(alert, layoutAlertImage, imageAlertPhoto);
 
             // Parse and display human-readable location for individual alerts
             displayLocationForAlert(textLocation, alert.getLocation());
@@ -206,6 +214,97 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             }
 
             return alertView;
+        }
+
+        private void handleAlertImage(SubmittedAlert alert, LinearLayout layoutAlertImage, ImageView imageAlertPhoto) {
+            String imageUrl = alert.getImageUrl();
+
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                // Show the image container
+                layoutAlertImage.setVisibility(View.VISIBLE);
+
+                // Load image using ImageLoader utility
+                com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
+                    itemView.getContext(),
+                    imageUrl,
+                    imageAlertPhoto,
+                    new com.unipi.gkagkakis.smartalert.Utils.ImageLoader.ImageLoadCallback() {
+                        @Override
+                        public void onImageLoaded(@NonNull android.graphics.Bitmap bitmap) {
+                            // Image loaded successfully
+                            imageAlertPhoto.setImageBitmap(bitmap);
+
+                            // Add click listener for full-screen preview with blur effect
+                            imageAlertPhoto.setOnClickListener(v -> showImagePreview(bitmap));
+                        }
+
+                        @Override
+                        public void onError(@NonNull Exception e) {
+                            // Hide image container if loading fails
+                            layoutAlertImage.setVisibility(View.GONE);
+                        }
+                    }
+                );
+            } else {
+                // Hide image container if no image URL
+                layoutAlertImage.setVisibility(View.GONE);
+            }
+        }
+
+        private void showImagePreview(android.graphics.Bitmap bitmap) {
+            // Get the activity to access the window and fragment manager
+            android.app.Activity activity = null;
+            android.content.Context context = itemView.getContext();
+            if (context instanceof android.app.Activity) {
+                activity = (android.app.Activity) context;
+            } else if (context instanceof androidx.appcompat.view.ContextThemeWrapper) {
+                activity = (android.app.Activity) ((androidx.appcompat.view.ContextThemeWrapper) context).getBaseContext();
+            }
+
+            if (activity instanceof androidx.fragment.app.FragmentActivity) {
+                androidx.fragment.app.FragmentActivity fragmentActivity = (androidx.fragment.app.FragmentActivity) activity;
+
+                // Capture screenshot using modern approach
+                View rootView = fragmentActivity.getWindow().getDecorView().getRootView();
+                android.graphics.Bitmap screenshot = createBitmapFromView(rootView);
+
+                android.graphics.Bitmap blurred = com.unipi.gkagkakis.smartalert.Utils.BlurHelper.blur(context, screenshot, 15);
+                com.unipi.gkagkakis.smartalert.presentation.UI.ImagePreviewDialogFragment dialog =
+                    com.unipi.gkagkakis.smartalert.presentation.UI.ImagePreviewDialogFragment.newInstance(bitmap, blurred);
+                dialog.show(fragmentActivity.getSupportFragmentManager(), "image_preview");
+            } else {
+                // Fallback to simple dialog if we can't get FragmentActivity
+                android.app.Dialog dialog = new android.app.Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+                dialog.setContentView(com.unipi.gkagkakis.smartalert.R.layout.dialog_image_preview);
+
+                ImageView previewImage = dialog.findViewById(com.unipi.gkagkakis.smartalert.R.id.iv_preview);
+                previewImage.setImageBitmap(bitmap);
+                previewImage.setOnClickListener(v -> dialog.dismiss());
+                dialog.show();
+            }
+        }
+
+        @SuppressLint("ObsoleteSdkInt")
+        private android.graphics.Bitmap createBitmapFromView(View view) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                // Modern approach for API 26+
+                android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(
+                    view.getWidth(), view.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+                android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+                view.draw(canvas);
+                return bitmap;
+            } else {
+                // Legacy approach for older versions
+                return createBitmapFromViewLegacy(view);
+            }
+        }
+
+        @SuppressWarnings("deprecation")
+        private android.graphics.Bitmap createBitmapFromViewLegacy(View view) {
+            view.setDrawingCacheEnabled(true);
+            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(view.getDrawingCache());
+            view.setDrawingCacheEnabled(false);
+            return bitmap;
         }
 
         private void displayLocationForAlert(TextView textLocation, String rawLocation) {
