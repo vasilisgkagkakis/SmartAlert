@@ -17,6 +17,8 @@ import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.RegisterViewModel;
 
+import static android.os.Looper.getMainLooper;
+
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputEditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
@@ -29,27 +31,11 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
         StatusBarHelper.hideStatusBar(this);
+
         initViews();
+        setupViewModel();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
-
-        viewModel = new ViewModelProvider(this).get(RegisterViewModel.class);
-
-        viewModel.registrationSuccess.observe(this, success -> {
-            if (success != null && success) {
-                Toast.makeText(this, "Registration successful! Redirecting...", Toast.LENGTH_SHORT).show();
-                new Handler().postDelayed(() -> {
-                    startActivity(new Intent(this, LoginActivity.class));
-                    finish();
-                }, 2000);
-            }
-        });
-
-        viewModel.registrationError.observe(this, error -> {
-            if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
-            }
-        });
     }
 
     private void initViews() {
@@ -60,6 +46,40 @@ public class RegisterActivity extends AppCompatActivity {
         etConfirmPassword = findViewById(R.id.et_confirm_password);
         btnRegister = findViewById(R.id.btn_register);
         tvLogin = findViewById(R.id.tv_login);
+    }
+
+    private void setupViewModel() {
+        viewModel = new ViewModelProvider(this).get(RegisterViewModel.class);
+
+        // Observe registration success
+        viewModel.registrationSuccess.observe(this, success -> {
+            if (success != null && success) {
+                Toast.makeText(this, "Registration successful! Redirecting...", Toast.LENGTH_SHORT).show();
+                new Handler(getMainLooper()).postDelayed(() -> {
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                }, 2000);
+                // Clear success state to prevent repeated navigation
+                viewModel.clearRegistrationSuccess();
+            }
+        });
+
+        // Observe registration errors
+        viewModel.registrationError.observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                // Clear error after showing it
+                viewModel.clearRegistrationError();
+            }
+        });
+
+        // Observe loading state
+        viewModel.isLoading.observe(this, isLoading -> {
+            if (isLoading != null) {
+                btnRegister.setEnabled(!isLoading);
+                btnRegister.setText(isLoading ? "Registering..." : "Register");
+            }
+        });
     }
 
     private void setupClickListeners() {
@@ -87,6 +107,7 @@ public class RegisterActivity extends AppCompatActivity {
         };
         boolean hasError = false;
 
+        // Validate all fields are not empty
         for (int i = 0; i < fields.length; i++) {
             if (TextUtils.isEmpty(fields[i].getText())) {
                 fields[i].setError(errorMessages[i]);
@@ -96,7 +117,21 @@ public class RegisterActivity extends AppCompatActivity {
             }
         }
 
+        // Validate email format
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        if (!TextUtils.isEmpty(email) && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Please enter a valid email address");
+            hasError = true;
+        }
+
+        // Validate password length
         String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        if (!TextUtils.isEmpty(password) && password.length() < 6) {
+            etPassword.setError("Password must be at least 6 characters");
+            hasError = true;
+        }
+
+        // Validate passwords match
         String confirmPassword = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
         if (!password.equals(confirmPassword)) {
             etConfirmPassword.setError("Passwords do not match");

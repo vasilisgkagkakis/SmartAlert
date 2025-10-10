@@ -17,4 +17,9 @@ public class AuthRepositoryImpl implements AuthRepository {
     public Task<AuthResult> register(String email, String password) {
         return firebaseAuth.createUserWithEmailAndPassword(email, password);
     }
+
+    @Override
+    public Task<Void> sendPasswordResetEmail(String email) {
+        return firebaseAuth.sendPasswordResetEmail(email);
+    }
 }

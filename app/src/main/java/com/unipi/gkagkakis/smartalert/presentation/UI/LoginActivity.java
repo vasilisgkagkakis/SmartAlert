@@ -12,7 +12,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
@@ -21,6 +20,8 @@ import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
 
 import android.util.Log;
 
+import static android.os.Looper.getMainLooper;
+
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etEmail, etPassword;
@@ -28,13 +29,14 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvRegister, tvForgotPassword;
     private LoginViewModel viewModel;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         StatusBarHelper.hideStatusBar(this);
+
         initViews();
+        setupViewModel();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
     }
@@ -45,28 +47,63 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btn_login);
         tvRegister = findViewById(R.id.tv_register);
         tvForgotPassword = findViewById(R.id.tv_forgot_password);
+    }
 
+    private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
 
+        // Observe login success
         viewModel.loginSuccess.observe(this, success -> {
             if (success != null && success) {
                 Toast.makeText(this, "Login successful! Redirecting...", Toast.LENGTH_SHORT).show();
-                new Handler().postDelayed(() -> {
+                new Handler(getMainLooper()).postDelayed(() -> {
                     handleLoginSuccess();
                 }, 2000);
+                // Clear success state to prevent repeated navigation
+                viewModel.clearLoginSuccess();
             }
         });
 
+        // Observe login errors
         viewModel.loginError.observe(this, error -> {
-            if (error != null) {
+            if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                // Clear error after showing it
+                viewModel.clearLoginError();
+            }
+        });
+
+        // Observe password reset success
+        viewModel.passwordResetSuccess.observe(this, success -> {
+            if (success != null && success) {
+                String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+                Toast.makeText(this, "Password reset email sent to " + email, Toast.LENGTH_SHORT).show();
+                // Clear success state
+                viewModel.clearPasswordResetSuccess();
+            }
+        });
+
+        // Observe password reset errors
+        viewModel.passwordResetError.observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(this, "Failed to send reset email: " + error, Toast.LENGTH_LONG).show();
+                // Clear error after showing it
+                viewModel.clearPasswordResetError();
+            }
+        });
+
+        // Observe loading state
+        viewModel.isLoading.observe(this, isLoading -> {
+            if (isLoading != null) {
+                btnLogin.setEnabled(!isLoading);
+                btnLogin.setText(isLoading ? "Logging in..." : "Login");
             }
         });
     }
 
     private void setupClickListeners() {
         btnLogin.setOnClickListener(v -> {
-            if(!validateInputs()) {
+            if (!validateInputs()) {
                 return;
             }
             String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
@@ -86,26 +123,16 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(LoginActivity.this, "Enter your email to reset password.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            FirebaseAuth.getInstance().sendPasswordResetEmail(email)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(LoginActivity.this, "Password reset email sent to " + email, Toast.LENGTH_SHORT).show();
-                            Log.d("LoginActivity", FirebaseAuth.getInstance().toString());
-                            Log.d("LoginActivity", "Password reset email sent to: " + email);
-                        } else {
-                            Toast.makeText(LoginActivity.this, "Failed to send reset email.", Toast.LENGTH_SHORT).show();
-                            Log.w("LoginActivity", "Failed to send password reset email.", task.getException());
-                        }
-                    });
+            viewModel.resetPassword(email);
         });
     }
 
     private boolean validateInputs() {
         TextInputEditText[] fields = {etEmail, etPassword};
-        String[] errorMessages = {"Email required", "Password required"
-        };
+        String[] errorMessages = {"Email required", "Password required"};
         boolean hasError = false;
 
+        // Validate all fields are not empty
         for (int i = 0; i < fields.length; i++) {
             if (TextUtils.isEmpty(fields[i].getText())) {
                 fields[i].setError(errorMessages[i]);
@@ -113,6 +140,13 @@ public class LoginActivity extends AppCompatActivity {
             } else {
                 fields[i].setError(null);
             }
+        }
+
+        // Validate email format
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        if (!TextUtils.isEmpty(email) && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Please enter a valid email address");
+            hasError = true;
         }
 
         return !hasError;

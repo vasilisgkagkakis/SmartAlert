@@ -6,21 +6,18 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
-import com.unipi.gkagkakis.smartalert.Utils.NotificationPermissionHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
-import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
-import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
-import com.unipi.gkagkakis.smartalert.service.LocationTrackingService;
+import com.unipi.gkagkakis.smartalert.presentation.viewmodel.MainViewModel;
 
 public class MainActivity extends AppCompatActivity {
 
     private MaterialButton btnLogin, btnRegister;
-    private UserRepository userRepository;
-    private LocationTrackingService locationTrackingService;
+    private MainViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,84 +25,69 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         StatusBarHelper.hideStatusBar(this);
 
-
         initViews();
+        setupViewModel();
         setupClickListeners();
         AnimationHelper.startLogoAnimation(this, findViewById(R.id.logo), R.anim.logo_up_and_down);
 
-        userRepository = new UserRepositoryImpl(this);
-        locationTrackingService = LocationTrackingService.getInstance(this);
+        // Request initial permissions through ViewModel
+        viewModel.requestInitialPermissions(this);
 
-        // Initialize FCM and request notification permission
-        NotificationPermissionHelper.requestNotificationPermission(this);
-
-        // Request location permissions and start tracking
-        requestLocationPermissionsAndStartTracking();
-
-        if (userRepository.isUserAuthenticated()) {
-            checkUserTypeAndNavigate();
-        } else {
-            Toast.makeText(this, "Welcome! Please log in or register.", Toast.LENGTH_SHORT).show();
-        }
+        // Check authentication through ViewModel
+        viewModel.checkAuthenticationAndNavigate();
     }
 
-    private void requestLocationPermissionsAndStartTracking() {
-        if (locationTrackingService.hasLocationPermissions()) {
-            // Basic permissions already granted, check for background permission
-            if (locationTrackingService.hasBackgroundLocationPermission()) {
-                // All permissions granted, start continuous tracking
-                locationTrackingService.startContinuousLocationTracking();
-            } else {
-                // Request background location permission
-                locationTrackingService.requestBackgroundLocationPermission(this);
+    private void setupViewModel() {
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
+        // Observe authentication state
+        viewModel.isUserAuthenticated.observe(this, authenticated -> {
+            if (authenticated != null && !authenticated) {
+                Toast.makeText(this, "Welcome! Please log in or register.", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        // Observe admin status for navigation
+        viewModel.isAdmin.observe(this, isAdmin -> {
+            if (isAdmin != null) {
+                navigateToHomepage(isAdmin);
+            }
+        });
+
+        // Observe navigation errors
+        viewModel.navigationError.observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                viewModel.clearNavigationError();
+            }
+        });
+
+        // Observe loading state
+        viewModel.isLoading.observe(this, isLoading -> {
+            // Can add loading indicator here if needed
+            // For now, we'll keep the UI simple
+        });
+    }
+
+    private void navigateToHomepage(boolean isAdmin) {
+        Intent intent;
+        if (isAdmin) {
+            intent = new Intent(MainActivity.this, AdminHomepageActivity.class);
         } else {
-            // Request basic location permissions first
-            locationTrackingService.requestLocationPermissions(this);
+            intent = new Intent(MainActivity.this, HomepageActivity.class);
         }
+        startActivity(intent);
+        finish();
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        // Handle notification permissions
-        NotificationPermissionHelper.handlePermissionResult(this, requestCode, permissions, grantResults);
-
-        // Handle location permissions
-        locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
-
-        // After handling basic location permissions, request background permission
-        if (requestCode == LocationTrackingService.LOCATION_PERMISSION_REQUEST_CODE) {
-            if (locationTrackingService.hasLocationPermissions()) {
-                // Basic permissions granted, now request background permission
-                locationTrackingService.requestBackgroundLocationPermission(this);
-            }
-        }
+        // Handle permission results through ViewModel (following clean architecture)
+        viewModel.handlePermissionResult(this, requestCode, permissions, grantResults);
     }
 
-    private void checkUserTypeAndNavigate() {
-        userRepository.checkIsAdmin(new UserRepository.IsAdminCallback() {
-            @Override
-            public void onIsAdminResult(boolean isAdmin) {
-                Intent intent;
-                if (isAdmin) {
-                    intent = new Intent(MainActivity.this, AdminHomepageActivity.class);
-                } else {
-                    intent = new Intent(MainActivity.this, HomepageActivity.class);
-                }
-                startActivity(intent);
-                finish();
-            }
-
-            @Override
-            public void onIsAdminFailed() {
-                // Default to regular homepage if admin check fails
-                startActivity(new Intent(MainActivity.this, HomepageActivity.class));
-                finish();
-            }
-        });
-    }
 
     private void initViews() {
         btnLogin = findViewById(R.id.btn_login);
