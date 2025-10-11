@@ -49,19 +49,30 @@
     <string name="dark_mode">Dark Mode</string>
     <string name="dark_mode_description">Switch between light and dark theme</string>
     <string name="theme_mode">Theme Mode</string>
-    <string name="theme_follow_system">Follow System</string>
-    <string name="theme_light_mode">Light Mode</string>
-    <string name="theme_dark_mode">Dark Mode</string>
-    <string name="general">General</string>
-    <string name="more_settings_coming">More settings coming soon…</string>
-    <string name="back">Back</string>
     <string name="theme">Theme</string>
-    <string name="follow_system">Follow system</string>
+    <string name="follow_system">Follow System</string>
     <string name="use_system_theme_setting">Use system theme setting</string>
+    <string name="light_theme">Light Theme</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="back">Back</string>
+
+    <!-- Language settings -->
+    <string name="language">Language</string>
+    <string name="language_description">Choose your app language</string>
+    <string name="english">English</string>
+    <string name="greek">Greek</string>
+    <string name="language_changed">Language changed. App will restart.</string>
+
+    <!-- Additional theme strings -->
     <string name="light">Light</string>
-    <string name="always_use_light_theme">Always use light theme</string>
     <string name="dark">Dark</string>
+    <string name="always_use_light_theme">Always use light theme</string>
     <string name="always_use_dark_theme">Always use dark theme</string>
+
+    <!-- Missing string resources -->
+    <string name="general">General</string>
+    <string name="more_settings_coming">More settings coming soon</string>
     <string name="seed_test_data">Seed Test Data</string>
     <string name="refresh">Refresh</string>
+
 </resources>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SmartAlert</string>
+    <string name="smartalert">SmartAlert</string>
+    <string name="stay_connected_stay_safe">Μείνετε Συνδεδεμένοι, Μείνετε Ασφαλείς</string>
+    <string name="login">Σύνδεση</string>
+    <string name="register">Εγγραφή</string>
+    <string name="email_address">Διεύθυνση Email</string>
+    <string name="password">Κωδικός</string>
+    <string name="don_t_have_an_account">Δεν έχετε λογαριασμό;</string>
+    <string name="create_account">Δημιουργία Λογαριασμού</string>
+    <string name="join_smartalert_community">Γίνετε μέλος της κοινότητας SmartAlert</string>
+    <string name="full_name">Πλήρες Όνομα</string>
+    <string name="phone_number">Αριθμός Τηλεφώνου</string>
+    <string name="confirm_password">Επιβεβαίωση Κωδικού</string>
+    <string name="already_have_an_account">Έχετε ήδη λογαριασμό;</string>
+    <string name="sign_in">Είσοδος</string>
+    <string name="sign_up">Εγγραφή</string>
+    <string name="forgot_password">Ξεχάσατε τον κωδικό;</string>
+    <string name="logo">λογότυπο</string>
+    <string name="new_alert">Νέα Ειδοποίηση</string>
+    <string name="location">Τοποθεσία</string>
+    <string name="severity_level">Επίπεδο Σοβαρότητας</string>
+    <string name="alert_type">Τύπος Ειδοποίησης</string>
+    <string name="create_new_alert">Δημιουργία Νέας Ειδοποίησης</string>
+    <string name="description">Περιγραφή</string>
+    <string name="alert_image">Εικόνα Ειδοποίησης</string>
+    <string name="add_image">Προσθήκη Εικόνας</string>
+    <string name="delete_image">Διαγραφή Εικόνας</string>
+    <string name="cancel">Ακύρωση</string>
+    <string name="create_alert">Δημιουργία Ειδοποίησης</string>
+    <string name="navigation_drawer_open">Άνοιγμα συρταριού πλοήγησης</string>
+    <string name="navigation_drawer_close">Κλείσιμο συρταριού πλοήγησης</string>
+    <string name="nav_header_desc">Φωτογραφία προφίλ</string>
+    <string name="default_notification_channel_id">smart_alert_notifications</string>
+    <string name="default_notification_channel_name">Ειδοποιήσεις Smart Alert</string>
+    <string name="default_notification_channel_description">Ειδοποιήσεις για κοντινές προειδοποιήσεις</string>
+    <string name="logging_in">Σύνδεση…</string>
+    <string name="registering">Εγγραφή…</string>
+    <string name="uploading">Μεταφόρτωση… </string>
+    <string name="percent">%</string>
+    <string name="add_image1">Προσθήκη Εικόνας</string>
+    <string name="change_image">Αλλαγή Εικόνας</string>
+    <string name="all_alerts">Όλες οι Ειδοποιήσεις</string>
+    <string name="review_submitted_alerts">Επισκόπηση Υποβληθέντων Ειδοποιήσεων</string>
+
+    <!-- Settings strings -->
+    <string name="settings">Ρυθμίσεις</string>
+    <string name="appearance">Εμφάνιση</string>
+    <string name="dark_mode">Σκοτεινό Θέμα</string>
+    <string name="dark_mode_description">Εναλλαγή μεταξύ φωτεινού και σκοτεινού θέματος</string>
+    <string name="theme_mode">Λειτουργία Θέματος</string>
+    <string name="theme">Θέμα</string>
+    <string name="follow_system">Ακολουθήστε το Σύστημα</string>
+    <string name="use_system_theme_setting">Χρήση ρύθμισης θέματος συστήματος</string>
+    <string name="light_theme">Φωτεινό Θέμα</string>
+    <string name="dark_theme">Σκοτεινό Θέμα</string>
+    <string name="back">Πίσω</string>
+
+    <!-- Language settings -->
+    <string name="language">Γλώσσα</string>
+    <string name="language_description">Επιλέξτε τη γλώσσα της εφαρμογής</string>
+    <string name="english">Αγγλικά</string>
+    <string name="greek">Ελληνικά</string>
+    <string name="language_changed">Η γλώσσα άλλαξε. Η εφαρμογή θα επανεκκινήσει.</string>
+
+    <!-- Additional theme strings -->
+    <string name="light">Φωτεινό</string>
+    <string name="dark">Σκοτεινό</string>
+    <string name="always_use_light_theme">Πάντα χρησιμοποιείτε φωτεινό θέμα</string>
+    <string name="always_use_dark_theme">Πάντα χρησιμοποιείτε σκοτεινό θέμα</string>
+
+    <!-- Missing string resources -->
+    <string name="general">Γενικά</string>
+    <string name="more_settings_coming">Περισσότερες ρυθμίσεις έρχονται σύντομα</string>
+    <string name="seed_test_data">Δεδομένα Δοκιμής</string>
+    <string name="refresh">Ανανέωση</string>
+</resources>

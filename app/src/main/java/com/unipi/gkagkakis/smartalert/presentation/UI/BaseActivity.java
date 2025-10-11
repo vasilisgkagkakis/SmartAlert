@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.LocaleManager;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.HomepageViewModel;
 
 import android.view.View;
@@ -31,6 +32,12 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
     private boolean useDrawer = true;
     private HomepageViewModel viewModel;
 
+
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        // Apply locale before activity is created
+        super.attachBaseContext(LocaleManager.applyLocale(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
