@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_seed_data"
         android:icon="@android:drawable/ic_menu_add"
-        android:title="Seed Test Data"
-        android:showAsAction="never" />
+        android:title="@string/seed_test_data"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_refresh"
         android:icon="@android:drawable/ic_menu_rotate"
-        android:title="Refresh"
-        android:showAsAction="ifRoom" />
+        android:title="@string/refresh"
+        app:showAsAction="never" />
 </menu>
 

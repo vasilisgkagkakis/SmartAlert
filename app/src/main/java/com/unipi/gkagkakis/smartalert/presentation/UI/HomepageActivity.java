@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+import com.unipi.gkagkakis.smartalert.Utils.ThemeManager;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.HomepageViewModel;
 
 public class HomepageActivity extends BaseActivity {
@@ -21,6 +22,9 @@ public class HomepageActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply theme before calling super.onCreate()
+        ThemeManager.applyTheme(this);
+
         super.onCreate(savedInstanceState);
         setContentViewWithDrawer(R.layout.activity_homepage);
         StatusBarHelper.hideStatusBar(this);

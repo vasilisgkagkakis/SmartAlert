@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Primary Colors (same as light theme) -->
+    <color name="primary_color">#6366F1</color>
+    <color name="primary_dark">#4F46E5</color>
+    <color name="primary_light">#A5B4FC</color>
+
+    <!-- Text Colors for Dark Theme -->
+    <color name="primary_text">#FFFFFF</color>
+    <color name="primary_text_color">#FFFFFF</color>
+    <color name="secondary_text">#B3B3B3</color>
+
+    <!-- Background Colors for Dark Theme -->
+    <color name="background_color">#121212</color>
+    <color name="background_gradient_start">#667eea</color>
+    <color name="background_gradient_end">#764ba2</color>
+    <color name="homepage_background_gradient_start">#2C3E50</color>
+    <color name="homepage_background_gradient_end">#34495E</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="light_gray">#2C2C2C</color>
+
+    <!-- Severity Colors (slightly adjusted for dark theme) -->
+    <color name="severity_high">#F87171</color>
+    <color name="severity_medium">#FBBF24</color>
+    <color name="severity_low">#34D399</color>
+    <color name="severity_background">#2D1B1B</color>
+    <color name="severity_border">#3C2626</color>
+
+    <!-- Status Colors -->
+    <color name="success">#34D399</color>
+    <color name="error">#F87171</color>
+    <color name="warning">#FBBF24</color>
+
+    <color name="homepageBackground">#121212</color>
+    <color name="colorPrimary">#6366F1</color>
+    <color name="colorAccent">#FF9800</color>
+    <color name="cardBackground">#1E1E1E</color>
+
+    <color name="delete">#F87171</color>
+</resources>

@@ -14,17 +14,34 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary_color"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        app:title="Review Submitted Alerts"
-        app:titleTextColor="@android:color/white" />
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:layout_marginTop="15dp"
+                android:text="@string/all_alerts"
+                android:textColor="?android:attr/textColorPrimaryInverse"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+    </androidx.appcompat.widget.Toolbar>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="All Alerts"
-        android:textSize="24sp"
+        android:text='@string/review_submitted_alerts'
+        android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@android:color/white"
+        android:textColor="?android:attr/textColorPrimaryInverse"
         android:padding="16dp"
         android:gravity="center"
         android:background="@color/primary_color" />

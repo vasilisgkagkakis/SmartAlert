@@ -40,4 +40,28 @@
     <string name="percent">%</string>
     <string name="add_image1">Add Image</string>
     <string name="change_image">Change Image</string>
+    <string name="all_alerts">All Alerts</string>
+    <string name="review_submitted_alerts">Review Submitted Alerts</string>
+
+    <!-- Settings strings -->
+    <string name="settings">Settings</string>
+    <string name="appearance">Appearance</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="dark_mode_description">Switch between light and dark theme</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="theme_follow_system">Follow System</string>
+    <string name="theme_light_mode">Light Mode</string>
+    <string name="theme_dark_mode">Dark Mode</string>
+    <string name="general">General</string>
+    <string name="more_settings_coming">More settings coming soon…</string>
+    <string name="back">Back</string>
+    <string name="theme">Theme</string>
+    <string name="follow_system">Follow system</string>
+    <string name="use_system_theme_setting">Use system theme setting</string>
+    <string name="light">Light</string>
+    <string name="always_use_light_theme">Always use light theme</string>
+    <string name="dark">Dark</string>
+    <string name="always_use_dark_theme">Always use dark theme</string>
+    <string name="seed_test_data">Seed Test Data</string>
+    <string name="refresh">Refresh</string>
 </resources>

@@ -17,6 +17,7 @@ import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.CoordinatesUtil;
 import com.unipi.gkagkakis.smartalert.Utils.LocationUtils;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+import com.unipi.gkagkakis.smartalert.Utils.ThemeManager;
 import com.unipi.gkagkakis.smartalert.data.repository.AlertRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.data.repository.SubmittedAlertRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.data.service.AlertSeedService;
@@ -44,6 +45,9 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply theme before calling super.onCreate()
+        ThemeManager.applyTheme(this);
+
         super.onCreate(savedInstanceState);
         setContentViewWithDrawer(R.layout.activity_admin_view_alerts);
         StatusBarHelper.hideStatusBar(this);
@@ -355,3 +359,4 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
         });
     }
 }
+

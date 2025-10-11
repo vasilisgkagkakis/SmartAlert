@@ -120,7 +120,7 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 getOnBackPressedDispatcher().onBackPressed();
                 return true;
             } else if (id == R.id.nav_settings) {
-//                startActivity(new Intent(this, SettingsActivity.class));
+                startActivity(new Intent(this, SettingsActivity.class));
                 return true;
             } else if (id == R.id.nav_statistics) {
 //                startActivity(new Intent(this, StatisticsActivity.class));
@@ -129,7 +129,6 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         }
         return true;
     }
-
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {

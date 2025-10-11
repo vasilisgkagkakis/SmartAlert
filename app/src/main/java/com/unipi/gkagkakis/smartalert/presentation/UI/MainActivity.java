@@ -12,6 +12,7 @@ import com.google.android.material.button.MaterialButton;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+import com.unipi.gkagkakis.smartalert.Utils.ThemeManager;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.MainViewModel;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply theme before calling super.onCreate()
+        ThemeManager.applyTheme(this);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         StatusBarHelper.hideStatusBar(this);

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
+import com.unipi.gkagkakis.smartalert.Utils.ThemeManager;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.AdminHomepageViewModel;
 
 public class AdminHomepageActivity extends BaseActivity {
@@ -20,6 +21,9 @@ public class AdminHomepageActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply theme before calling super.onCreate()
+        ThemeManager.applyTheme(this);
+
         super.onCreate(savedInstanceState);
         setContentViewWithDrawer(R.layout.activity_admin_homepage);
         StatusBarHelper.hideStatusBar(this);
