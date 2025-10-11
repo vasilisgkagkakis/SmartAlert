@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.unipi.gkagkakis.smartalert.data.repository.UserRepositoryImpl;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
+import com.unipi.gkagkakis.smartalert.domain.usecase.NavigationUseCase;
 import com.unipi.gkagkakis.smartalert.domain.usecase.PermissionUseCase;
 import com.unipi.gkagkakis.smartalert.service.LocationTrackingService;
 
@@ -24,6 +25,7 @@ public class HomepageViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> _shouldNavigateToLogin = new MutableLiveData<>(false);
     private final MutableLiveData<String> _error = new MutableLiveData<>();
     private final MutableLiveData<Boolean> _locationPermissionRequired = new MutableLiveData<>();
+    private final MutableLiveData<String> _navigateToHomepage = new MutableLiveData<>();
 
     // Public read-only LiveData for UI observation
     public final LiveData<String> userName = _userName;
@@ -31,15 +33,18 @@ public class HomepageViewModel extends AndroidViewModel {
     public final LiveData<Boolean> shouldNavigateToLogin = _shouldNavigateToLogin;
     public final LiveData<String> error = _error;
     public final LiveData<Boolean> locationPermissionRequired = _locationPermissionRequired;
+    public final LiveData<String> navigateToHomepage = _navigateToHomepage;
 
     private final UserRepository userRepository;
     private final PermissionUseCase permissionUseCase;
+    private final NavigationUseCase navigationUseCase;
     private final LocationTrackingService locationTrackingService;
 
     public HomepageViewModel(@NonNull Application application) {
         super(application);
         this.userRepository = new UserRepositoryImpl(application);
         this.permissionUseCase = new PermissionUseCase(application);
+        this.navigationUseCase = new NavigationUseCase(userRepository);
         this.locationTrackingService = LocationTrackingService.getInstance(application);
     }
 
@@ -104,6 +109,31 @@ public class HomepageViewModel extends AndroidViewModel {
      */
     public void logout() {
         userRepository.logout();
+    }
+
+    /**
+     * Handles navigation to appropriate homepage based on user's admin status
+     * Follows clean architecture by using NavigationUseCase instead of directly accessing repository
+     */
+    public void navigateToHomepage() {
+        navigationUseCase.checkAdminStatusForNavigation(new NavigationUseCase.AdminNavigationCallback() {
+            @Override
+            public void onNavigateToAdminHomepage() {
+                _navigateToHomepage.setValue("AdminHomepage");
+            }
+
+            @Override
+            public void onNavigateToUserHomepage() {
+                _navigateToHomepage.setValue("Homepage");
+            }
+        });
+    }
+
+    /**
+     * Clears navigation state after navigation is complete
+     */
+    public void clearNavigateToHomepage() {
+        _navigateToHomepage.setValue(null);
     }
 
     // Getter methods for backward compatibility with existing code

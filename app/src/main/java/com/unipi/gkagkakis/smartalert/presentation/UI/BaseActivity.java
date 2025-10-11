@@ -37,6 +37,9 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(HomepageViewModel.class);
 
+        // Observe navigation events following MVVM pattern
+        observeNavigationEvents();
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -49,6 +52,69 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 }
             }
         });
+    }
+
+    /**
+     * Observe navigation events from ViewModel following MVVM pattern
+     */
+    private void observeNavigationEvents() {
+        viewModel.navigateToHomepage.observe(this, destination -> {
+            if (destination != null) {
+                handleNavigationDestination(destination);
+                // Clear navigation state
+                viewModel.clearNavigateToHomepage();
+            }
+        });
+    }
+
+    /**
+     * Handle navigation to specific destination
+     * This method can be overridden by subclasses for custom navigation behavior
+     */
+    protected void handleNavigationDestination(String destination) {
+        Intent intent = createNavigationIntent(destination);
+        if (intent != null && shouldNavigateToDestination(destination)) {
+            navigateToActivity(intent);
+        }
+    }
+
+    /**
+     * Create intent for navigation destination
+     * Following clean architecture by keeping activity references centralized
+     */
+    private Intent createNavigationIntent(String destination) {
+        switch (destination) {
+            case "AdminHomepage":
+                return new Intent(this, AdminHomepageActivity.class);
+            case "Homepage":
+                return new Intent(this, HomepageActivity.class);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Check if we should navigate to the destination
+     * Prevents unnecessary navigation if already on target activity
+     */
+    private boolean shouldNavigateToDestination(String destination) {
+        switch (destination) {
+            case "AdminHomepage":
+                return !(this instanceof AdminHomepageActivity);
+            case "Homepage":
+                return !(this instanceof HomepageActivity);
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Perform the actual navigation
+     * Can be overridden for custom navigation behavior (e.g., animations)
+     */
+    protected void navigateToActivity(Intent intent) {
+        startActivity(intent);
+        finish();
     }
 
     protected void setContentViewWithDrawer(int layoutResId) {
@@ -117,7 +183,7 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 finish();
                 return true;
             } else if (id == R.id.nav_home) {
-                getOnBackPressedDispatcher().onBackPressed();
+                navigateToHomepage();
                 return true;
             } else if (id == R.id.nav_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
@@ -136,5 +202,14 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Navigate to appropriate homepage following MVVM pattern
+     * Delegates to ViewModel which handles business logic and emits navigation events
+     */
+    private void navigateToHomepage() {
+        // Follow MVVM pattern - delegate to ViewModel
+        viewModel.navigateToHomepage();
     }
 }

@@ -5,15 +5,10 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.Utils.ThemeManager;
-import com.unipi.gkagkakis.smartalert.data.repository.SettingsRepositoryImpl;
-import com.unipi.gkagkakis.smartalert.domain.usecase.GetThemeModeUseCase;
-import com.unipi.gkagkakis.smartalert.domain.usecase.SaveThemeModeUseCase;
 import com.unipi.gkagkakis.smartalert.model.ThemeMode;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.SettingsViewModel;
 
@@ -44,13 +39,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void initializeViewModel() {
-        SettingsRepositoryImpl settingsRepository = new SettingsRepositoryImpl(this);
-        GetThemeModeUseCase getThemeModeUseCase = new GetThemeModeUseCase(settingsRepository);
-        SaveThemeModeUseCase saveThemeModeUseCase = new SaveThemeModeUseCase(settingsRepository);
-
-        // Create a proper ViewModelFactory to handle dependency injection
-        SettingsViewModelFactory factory = new SettingsViewModelFactory(getThemeModeUseCase, saveThemeModeUseCase);
-        settingsViewModel = new ViewModelProvider(this, factory).get(SettingsViewModel.class);
+        settingsViewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
     }
 
     private void initializeViews() {
@@ -104,30 +93,6 @@ public class SettingsActivity extends AppCompatActivity {
             case DARK:
                 radioDarkTheme.setChecked(true);
                 break;
-        }
-    }
-
-    /**
-     * ViewModelFactory for SettingsViewModel to handle dependency injection
-     * This eliminates the need for anonymous factory and fixes compiler warnings
-     */
-    private static class SettingsViewModelFactory implements ViewModelProvider.Factory {
-        private final GetThemeModeUseCase getThemeModeUseCase;
-        private final SaveThemeModeUseCase saveThemeModeUseCase;
-
-        public SettingsViewModelFactory(GetThemeModeUseCase getThemeModeUseCase, SaveThemeModeUseCase saveThemeModeUseCase) {
-            this.getThemeModeUseCase = getThemeModeUseCase;
-            this.saveThemeModeUseCase = saveThemeModeUseCase;
-        }
-
-        @NonNull
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-            if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
-                return (T) new SettingsViewModel(getThemeModeUseCase, saveThemeModeUseCase);
-            }
-            throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass.getName());
         }
     }
 }
