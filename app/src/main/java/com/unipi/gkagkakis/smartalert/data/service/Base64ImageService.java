@@ -3,9 +3,13 @@ package com.unipi.gkagkakis.smartalert.data.service;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BitmapFactory.Options;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -16,13 +20,14 @@ import java.io.InputStream;
 public class Base64ImageService {
 
     private static final String TAG = "Base64ImageService";
-    private static final int IMAGE_QUALITY = 60; // Lower quality for Base64 storage
-    private static final int MAX_IMAGE_WIDTH = 512; // Smaller size for Base64
-    private static final int MAX_IMAGE_HEIGHT = 512;
+    private static final int IMAGE_QUALITY = 100;
+    private static final int MAX_IMAGE_WIDTH = 1024;
+    private static final int MAX_IMAGE_HEIGHT = 1024;
 
     private static volatile Base64ImageService INSTANCE;
 
-    private Base64ImageService() {}
+    private Base64ImageService() {
+    }
 
     public static Base64ImageService getInstance() {
         if (INSTANCE == null) {
@@ -37,7 +42,9 @@ public class Base64ImageService {
 
     public interface ImageConversionCallback {
         void onSuccess(@NonNull String base64Image);
+
         void onError(@NonNull Exception e);
+
         void onProgress(int progress);
     }
 
@@ -46,32 +53,37 @@ public class Base64ImageService {
 
         new Thread(() -> {
             try {
-                callback.onProgress(10);
+                // Ensure progress callbacks run on main thread
+                Handler mainHandler = new Handler(Looper.getMainLooper());
+
+                mainHandler.post(() -> callback.onProgress(10));
 
                 // Convert URI to byte array
                 byte[] imageData = uriToByteArray(context, imageUri);
                 if (imageData == null) {
-                    callback.onError(new Exception("Failed to process image - could not read image data"));
+                    mainHandler.post(() -> callback.onError(new Exception("Failed to process image - could not read image data")));
                     return;
                 }
 
-                callback.onProgress(50);
+                mainHandler.post(() -> callback.onProgress(50));
                 Log.d(TAG, "Image processed, size: " + imageData.length + " bytes");
 
                 // Convert to Base64
                 String base64String = Base64.encodeToString(imageData, Base64.DEFAULT);
                 String base64Image = "data:image/jpeg;base64," + base64String;
 
-                callback.onProgress(100);
+                mainHandler.post(() -> callback.onProgress(90));
                 Log.d(TAG, "Base64 conversion completed, length: " + base64Image.length());
 
-                // Return on main thread
-                android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                mainHandler.post(() -> callback.onSuccess(base64Image));
+                // Return success on main thread
+                mainHandler.post(() -> {
+                    callback.onProgress(100);
+                    callback.onSuccess(base64Image);
+                });
 
             } catch (Exception e) {
                 Log.e(TAG, "Exception during Base64 conversion", e);
-                android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                Handler mainHandler = new Handler(Looper.getMainLooper());
                 mainHandler.post(() -> callback.onError(new Exception("Failed to convert image to Base64: " + e.getMessage())));
             }
         }).start();
@@ -79,9 +91,7 @@ public class Base64ImageService {
 
     @Nullable
     private byte[] uriToByteArray(@NonNull Context context, @NonNull Uri uri) {
-        InputStream inputStream = null;
-        try {
-            inputStream = context.getContentResolver().openInputStream(uri);
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
                 Log.e(TAG, "Failed to open input stream for URI: " + uri);
                 return null;
@@ -99,7 +109,7 @@ public class Base64ImageService {
             Log.d(TAG, "Original bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
             // Resize to smaller size for Base64 storage
-            bitmap = resizeBitmap(bitmap, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT);
+            bitmap = resizeBitmap(bitmap);
 
             Log.d(TAG, "Resized bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
@@ -126,26 +136,18 @@ public class Base64ImageService {
         } catch (Exception e) {
             Log.e(TAG, "Unexpected exception while processing image", e);
             return null;
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "Failed to close input stream", e);
-                }
-            }
         }
     }
 
-    private Bitmap resizeBitmap(@NonNull Bitmap bitmap, int maxWidth, int maxHeight) {
+    private Bitmap resizeBitmap(@NonNull Bitmap bitmap) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
 
-        if (width <= maxWidth && height <= maxHeight) {
+        if (width <= Base64ImageService.MAX_IMAGE_WIDTH && height <= Base64ImageService.MAX_IMAGE_HEIGHT) {
             return bitmap;
         }
 
-        float ratio = Math.min((float) maxWidth / width, (float) maxHeight / height);
+        float ratio = Math.min((float) Base64ImageService.MAX_IMAGE_WIDTH / width, (float) Base64ImageService.MAX_IMAGE_HEIGHT / height);
         int newWidth = Math.round(width * ratio);
         int newHeight = Math.round(height * ratio);
 
@@ -165,7 +167,14 @@ public class Base64ImageService {
             }
 
             byte[] decodedBytes = Base64.decode(base64Data, Base64.DEFAULT);
-            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+
+            // Use BitmapFactory.Options for better quality decoding
+            Options options = new Options();
+            options.inPreferQualityOverSpeed = true; // Prefer quality over speed
+            options.inDither = false; // Disable dithering for better quality
+            options.inScaled = false; // Don't scale during decode
+
+            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length, options);
         } catch (Exception e) {
             Log.e(TAG, "Failed to decode Base64 image", e);
             return null;

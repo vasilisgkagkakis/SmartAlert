@@ -2,6 +2,9 @@ package com.unipi.gkagkakis.smartalert.domain.usecase;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -38,21 +41,21 @@ public class CreateAlertUseCase {
     public void createAlert(Context context, String type, String severity, String location,
                            String description, @Nullable Uri imageUri, CreateAlertCallback callback) {
 
-        // Validation
+        // Validation with better error messages
         if (type == null || type.trim().isEmpty()) {
-            callback.onError("Type is required.");
+            callback.onError("Alert type is required.");
             return;
         }
         if (severity == null || severity.trim().isEmpty()) {
-            callback.onError("Severity is required.");
+            callback.onError("Alert severity is required.");
             return;
         }
         if (location == null || location.trim().isEmpty()) {
-            callback.onError("Location is required.");
+            callback.onError("Alert location is required.");
             return;
         }
         if (description == null || description.trim().isEmpty()) {
-            callback.onError("Description is required.");
+            callback.onError("Alert description is required.");
             return;
         }
 
@@ -79,41 +82,60 @@ public class CreateAlertUseCase {
         imageStorageService.uploadImage(context, imageUri, new ImageStorageService.ImageUploadCallback() {
             @Override
             public void onSuccess(@NonNull String downloadUrl) {
+                Log.d("CreateAlertUseCase", "Firebase Storage upload successful");
                 createAlertWithImageUrl(type, severity, location, description, downloadUrl, userId, callback);
             }
 
             @Override
             public void onError(@NonNull Exception e) {
                 // Firebase Storage failed, try Base64 fallback
-                android.util.Log.d("CreateAlertUseCase", "Firebase Storage failed, using Base64 fallback: " + e.getMessage());
+                Log.w("CreateAlertUseCase", "Firebase Storage failed, using Base64 fallback: " + e.getMessage());
 
-                base64ImageService.convertImageToBase64(context, imageUri, new Base64ImageService.ImageConversionCallback() {
-                    @Override
-                    public void onSuccess(@NonNull String base64Image) {
-                        android.util.Log.d("CreateAlertUseCase", "Base64 conversion successful, creating alert");
-                        createAlertWithImageUrl(type, severity, location, description, base64Image, userId, callback);
-                    }
+                tryBase64Fallback(context, imageUri, type, severity, location, description, userId, callback);
+            }
 
-                    @Override
-                    public void onError(@NonNull Exception e) {
-                        // Both methods failed, create without image
-                        android.util.Log.e("CreateAlertUseCase", "Both Firebase Storage and Base64 failed, creating without image", e);
-                        callback.onError("Image processing failed. Creating alert without image...");
+            @Override
+            public void onProgress(int progress) {
+                // Only report up to 80% for Firebase Storage phase
+                callback.onProgress(Math.min(progress * 80 / 100, 80));
+            }
+        });
+    }
 
-                        // Wait a moment then create without image
-                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> createAlertWithImageUrl(type, severity, location, description, null, userId, callback), 1000);
-                    }
+    private void tryBase64Fallback(Context context, Uri imageUri, String type, String severity,
+                                 String location, String description, String userId, CreateAlertCallback callback) {
 
-                    @Override
-                    public void onProgress(int progress) {
-                        callback.onProgress(progress);
-                    }
+        base64ImageService.convertImageToBase64(context, imageUri, new Base64ImageService.ImageConversionCallback() {
+            @Override
+            public void onSuccess(@NonNull String base64Image) {
+                Log.d("CreateAlertUseCase", "Base64 conversion successful, creating alert");
+                createAlertWithImageUrl(type, severity, location, description, base64Image, userId, callback);
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+                // Both methods failed, offer user choice
+                Log.e("CreateAlertUseCase", "Both Firebase Storage and Base64 failed: " + e.getMessage(), e);
+
+                // Use main thread handler to show user-friendly error
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    String errorMessage = "Image upload failed. Would you like to submit the alert without the image?";
+
+                    // For now, automatically create without image after showing error
+                    callback.onError(errorMessage);
+
+                    // After 2 seconds, create the alert without image
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        Log.d("CreateAlertUseCase", "Creating alert without image due to upload failures");
+                        createAlertWithImageUrl(type, severity, location, description, null, userId, callback);
+                    }, 2000);
                 });
             }
 
             @Override
             public void onProgress(int progress) {
-                callback.onProgress(progress);
+                // Base64 conversion is from 80% to 95%
+                callback.onProgress(80 + (progress * 15 / 100));
             }
         });
     }

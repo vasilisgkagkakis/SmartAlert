@@ -3,6 +3,8 @@ package com.unipi.gkagkakis.smartalert.presentation.viewmodel;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.os.Build;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -73,14 +75,14 @@ public class NewAlertViewModel extends AndroidViewModel {
      */
     @SuppressLint("ObsoleteSdkInt")
     public Bitmap createBlurredScreenshot(View rootView) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Modern approach for API 26+
             Bitmap screenshot = Bitmap.createBitmap(
                 rootView.getWidth(),
                 rootView.getHeight(),
                 Bitmap.Config.ARGB_8888
             );
-            android.graphics.Canvas canvas = new android.graphics.Canvas(screenshot);
+            Canvas canvas = new Canvas(screenshot);
             rootView.draw(canvas);
 
             return BlurHelper.blur(getApplication(), screenshot, 15);

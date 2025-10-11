@@ -3,18 +3,21 @@ package com.unipi.gkagkakis.smartalert.service;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 public class FCMTokenManager {
     private static final String TAG = "FCMTokenManager";
     private static final String PREF_NAME = "fcm_token_prefs";
     private static final String KEY_FCM_TOKEN = "fcm_token";
+    private static final String KEY_DEVICE_ID = "device_id";
 
     private static FCMTokenManager instance;
     private final Context context;
@@ -59,7 +62,7 @@ public class FCMTokenManager {
     }
 
     private void checkAndRegenerateTokenIfNeeded() {
-        String userId = auth.getCurrentUser().getUid();
+        String userId = Objects.requireNonNull(auth.getCurrentUser()).getUid();
 
         firestore.collection("users")
                 .document(userId)
@@ -116,10 +119,6 @@ public class FCMTokenManager {
         Log.d(TAG, "FCM token saved locally");
     }
 
-    public String getToken() {
-        return preferences.getString(KEY_FCM_TOKEN, null);
-    }
-
     public void sendTokenToServer(String token) {
         if (auth.getCurrentUser() == null) {
             Log.w(TAG, "User not authenticated, cannot save token to server");
@@ -146,7 +145,7 @@ public class FCMTokenManager {
                     // If update fails, try to set the token (in case document doesn't exist)
                     firestore.collection("users")
                             .document(userId)
-                            .set(tokenData, com.google.firebase.firestore.SetOptions.merge())
+                            .set(tokenData, SetOptions.merge())
                             .addOnSuccessListener(aVoid2 -> Log.d(TAG, "FCM token set in Firestore"))
                             .addOnFailureListener(e2 -> Log.e(TAG, "Failed to set FCM token in Firestore", e2));
                 });
@@ -183,86 +182,17 @@ public class FCMTokenManager {
     }
 
     private String getDeviceId() {
-        // Create a unique device identifier
-        return android.provider.Settings.Secure.getString(
-                context.getContentResolver(),
-                android.provider.Settings.Secure.ANDROID_ID
-        );
-    }
+        // Use a UUID-based device identifier stored in SharedPreferences
+        // This is more privacy-friendly and reliable than ANDROID_ID
+        String deviceId = preferences.getString(KEY_DEVICE_ID, null);
 
-    public void deleteToken() {
-        FirebaseMessaging.getInstance().deleteToken()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        preferences.edit().remove(KEY_FCM_TOKEN).apply();
-                        Log.d(TAG, "FCM token deleted");
-
-                        // Also remove from server
-                        if (auth.getCurrentUser() != null) {
-                            String userId = auth.getCurrentUser().getUid();
-                            Map<String, Object> updates = new HashMap<>();
-                            updates.put("fcmToken", null);
-
-                            firestore.collection("users")
-                                    .document(userId)
-                                    .update(updates)
-                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token removed from server"))
-                                    .addOnFailureListener(e -> Log.e(TAG, "Failed to remove FCM token from server", e));
-                        }
-                    } else {
-                        Log.e(TAG, "Failed to delete FCM token", task.getException());
-                    }
-                });
-    }
-
-    /**
-     * Ensure user document has all required fields for consistency
-     */
-    public void ensureUserDataConsistency() {
-        if (auth.getCurrentUser() == null) {
-            Log.w(TAG, "User not authenticated, cannot ensure data consistency");
-            return;
+        if (deviceId == null) {
+            // Generate a new UUID for this device/app installation
+            deviceId = UUID.randomUUID().toString();
+            preferences.edit().putString(KEY_DEVICE_ID, deviceId).apply();
+            Log.d(TAG, "Generated new device ID: " + deviceId);
         }
 
-        String userId = auth.getCurrentUser().getUid();
-
-        // First check what data exists
-        firestore.collection("users")
-                .document(userId)
-                .get()
-                .addOnSuccessListener(document -> {
-                    Map<String, Object> updateData = new HashMap<>();
-
-                    // Ensure FCM token exists
-                    if (!document.contains("fcmToken") || document.getString("fcmToken") == null) {
-                        String currentToken = getToken();
-                        if (currentToken != null) {
-                            updateData.put("fcmToken", currentToken);
-                        }
-                    }
-
-                    // Ensure platform exists
-                    if (!document.contains("platform")) {
-                        updateData.put("platform", "android");
-                    }
-
-                    // Ensure timestamp exists
-                    if (!document.contains("timestamp")) {
-                        updateData.put("timestamp", System.currentTimeMillis());
-                    }
-
-                    // Update only if there are missing fields
-                    if (!updateData.isEmpty()) {
-                        firestore.collection("users")
-                                .document(userId)
-                                .update(updateData)
-                                .addOnSuccessListener(aVoid ->
-                                        Log.d(TAG, "User data consistency ensured"))
-                                .addOnFailureListener(e ->
-                                        Log.e(TAG, "Failed to ensure user data consistency", e));
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Failed to check user document for consistency", e));
+        return deviceId;
     }
 }

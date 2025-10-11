@@ -1,5 +1,6 @@
 package com.unipi.gkagkakis.smartalert.presentation.viewmodel;
 
+import android.app.Activity;
 import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -76,14 +77,14 @@ public class MainViewModel extends AndroidViewModel {
     /**
      * Requests initial permissions through use case
      */
-    public void requestInitialPermissions(android.app.Activity activity) {
+    public void requestInitialPermissions(Activity activity) {
         permissionUseCase.requestInitialPermissions(activity);
     }
 
     /**
      * Handles permission results through use case
      */
-    public void handlePermissionResult(android.app.Activity activity, int requestCode, String[] permissions, int[] grantResults) {
+    public void handlePermissionResult(Activity activity, int requestCode, String[] permissions, int[] grantResults) {
         permissionUseCase.handlePermissionResult(activity, requestCode, permissions, grantResults);
     }
 

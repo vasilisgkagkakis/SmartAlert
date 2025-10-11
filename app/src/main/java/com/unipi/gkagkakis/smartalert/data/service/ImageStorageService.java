@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -33,15 +34,28 @@ public class ImageStorageService {
     private static volatile ImageStorageService INSTANCE;
 
     private ImageStorageService() {
+        FirebaseStorage tempStorage = null;
+        StorageReference tempStorageRef = null;
+
         try {
-            // Use default Firebase Storage instance first
-            this.storage = FirebaseStorage.getInstance();
-            this.storageRef = storage.getReference();
-            Log.d(TAG, "Firebase Storage initialized successfully with default instance");
+            // Initialize Firebase Storage with proper error handling
+            tempStorage = FirebaseStorage.getInstance();
+            tempStorageRef = tempStorage.getReference();
+
+            // Validate storage bucket configuration
+            String bucketUrl = tempStorage.getApp().getOptions().getStorageBucket();
+            if (bucketUrl == null || bucketUrl.isEmpty()) {
+                Log.w(TAG, "Firebase Storage bucket not configured - uploads will fail gracefully");
+            } else {
+                Log.d(TAG, "Firebase Storage initialized successfully with bucket: " + bucketUrl);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize Firebase Storage", e);
-            throw new RuntimeException("Failed to initialize Firebase Storage", e);
+            // tempStorage and tempStorageRef remain null for graceful degradation
         }
+
+        this.storage = tempStorage;
+        this.storageRef = tempStorageRef;
     }
 
     public static ImageStorageService getInstance() {
@@ -62,6 +76,13 @@ public class ImageStorageService {
     }
 
     public void uploadImage(@NonNull Context context, @NonNull Uri imageUri, @NonNull ImageUploadCallback callback) {
+        // Check if Firebase Storage is properly initialized
+        if (storage == null || storageRef == null) {
+            Log.w(TAG, "Firebase Storage not initialized, upload will fail");
+            callback.onError(new Exception("Firebase Storage not configured. Please check your Firebase setup."));
+            return;
+        }
+
         // Check if user is authenticated
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
@@ -88,7 +109,7 @@ public class ImageStorageService {
             Log.d(TAG, "Uploading to path: " + ALERT_IMAGES_PATH + fileName);
 
             // Create metadata
-            com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+            StorageMetadata metadata = new StorageMetadata.Builder()
                     .setContentType("image/jpeg")
                     .setCustomMetadata("uploadedBy", user.getUid())
                     .setCustomMetadata("uploadTime", String.valueOf(System.currentTimeMillis()))
@@ -142,9 +163,7 @@ public class ImageStorageService {
 
     @Nullable
     private byte[] uriToByteArray(@NonNull Context context, @NonNull Uri uri) {
-        InputStream inputStream = null;
-        try {
-            inputStream = context.getContentResolver().openInputStream(uri);
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
                 Log.e(TAG, "Failed to open input stream for URI: " + uri);
                 return null;
@@ -162,7 +181,7 @@ public class ImageStorageService {
             Log.d(TAG, "Original bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
             // Resize if necessary
-            bitmap = resizeBitmap(bitmap, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT);
+            bitmap = resizeBitmap(bitmap);
 
             Log.d(TAG, "Resized bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
@@ -189,26 +208,18 @@ public class ImageStorageService {
         } catch (Exception e) {
             Log.e(TAG, "Unexpected exception while processing image", e);
             return null;
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "Failed to close input stream", e);
-                }
-            }
         }
     }
 
-    private Bitmap resizeBitmap(@NonNull Bitmap bitmap, int maxWidth, int maxHeight) {
+    private Bitmap resizeBitmap(@NonNull Bitmap bitmap) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
 
-        if (width <= maxWidth && height <= maxHeight) {
+        if (width <= ImageStorageService.MAX_IMAGE_WIDTH && height <= ImageStorageService.MAX_IMAGE_HEIGHT) {
             return bitmap;
         }
 
-        float ratio = Math.min((float) maxWidth / width, (float) maxHeight / height);
+        float ratio = Math.min((float) ImageStorageService.MAX_IMAGE_WIDTH / width, (float) ImageStorageService.MAX_IMAGE_HEIGHT / height);
         int newWidth = Math.round(width * ratio);
         int newHeight = Math.round(height * ratio);
 
@@ -217,28 +228,5 @@ public class ImageStorageService {
             bitmap.recycle(); // Free original bitmap memory
         }
         return resized;
-    }
-
-    public void deleteImage(@NonNull String imageUrl, @NonNull DeleteImageCallback callback) {
-        try {
-            StorageReference imageRef = storage.getReferenceFromUrl(imageUrl);
-            imageRef.delete()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Image deleted successfully: " + imageUrl);
-                        callback.onSuccess();
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to delete image: " + imageUrl, e);
-                        callback.onError(e);
-                    });
-        } catch (Exception e) {
-            Log.e(TAG, "Exception while deleting image: " + imageUrl, e);
-            callback.onError(e);
-        }
-    }
-
-    public interface DeleteImageCallback {
-        void onSuccess();
-        void onError(@NonNull Exception e);
     }
 }

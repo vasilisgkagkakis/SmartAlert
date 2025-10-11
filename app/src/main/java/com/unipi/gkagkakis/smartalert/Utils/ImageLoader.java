@@ -1,8 +1,8 @@
 package com.unipi.gkagkakis.smartalert.Utils;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BitmapFactory.Options;
 import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,11 +25,7 @@ public class ImageLoader {
         void onError(@NonNull Exception e);
     }
 
-    public static void loadImage(@NonNull Context context, @NonNull String imageUrl, @NonNull ImageView imageView) {
-        loadImage(context, imageUrl, imageView, null);
-    }
-
-    public static void loadImage(@NonNull Context context, @NonNull String imageUrl, @NonNull ImageView imageView, @Nullable ImageLoadCallback callback) {
+    public static void loadImage(@NonNull String imageUrl, @NonNull ImageView imageView, @Nullable ImageLoadCallback callback) {
         // Show placeholder or loading state
         imageView.setImageResource(android.R.drawable.ic_menu_gallery);
 
@@ -105,14 +101,17 @@ public class ImageLoader {
         connection.connect();
 
         InputStream input = connection.getInputStream();
-        Bitmap bitmap = BitmapFactory.decodeStream(input);
+
+        // Use BitmapFactory.Options for better quality decoding
+        Options options = new Options();
+        options.inPreferQualityOverSpeed = true; // Prefer quality over speed
+        options.inDither = false; // Disable dithering for better quality
+        options.inScaled = false; // Don't scale during decode
+
+        Bitmap bitmap = BitmapFactory.decodeStream(input, null, options);
         input.close();
         connection.disconnect();
 
         return bitmap;
-    }
-
-    public static void shutdown() {
-        executor.shutdown();
     }
 }

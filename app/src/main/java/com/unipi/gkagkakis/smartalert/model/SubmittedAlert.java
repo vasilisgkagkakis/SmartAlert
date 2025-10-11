@@ -14,16 +14,21 @@ public class SubmittedAlert {
     private String type;
     private String severity;
     private String location;
-    private final String description;
-    private final String imageUrl;
-    private final String userId;
+    private String description;
+    private String imageUrl;
+    private String userId;
 
     @ServerTimestamp
-    private final Date createdAt;
+    private Date createdAt;
 
+    // No-argument constructor required by Firebase Firestore for deserialization
+    public SubmittedAlert() {
+        // Default constructor - Firebase will populate fields via setters
+    }
 
+    // Parameterized constructor for creating new instances
     public SubmittedAlert(String id, String type, String severity, String location, String description,
-                 String imageUrl, String userId, Date createdAt) {
+                          String imageUrl, String userId, Date createdAt) {
         this.id = id;
         this.type = type;
         this.severity = severity;
@@ -34,23 +39,57 @@ public class SubmittedAlert {
         this.createdAt = createdAt;
     }
 
-    @Exclude public String getId() { return id; }
-    @Exclude public void setId(String id) { this.id = id; }
+    @Exclude
+    public String getId() {
+        return id;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    @Exclude
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getSeverity() { return severity; }
-    public void setSeverity(String severity) { this.severity = severity; }
+    public String getType() {
+        return type;
+    }
 
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
-    public String getDescription() { return description; }
+    public String getSeverity() {
+        return severity;
+    }
 
-    public String getImageUrl() { return imageUrl; }
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
 
-    public String getUserId() { return userId; }
+    public String getLocation() {
+        return location;
+    }
 
-    public Date getCreatedAt() { return createdAt; }
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
 }

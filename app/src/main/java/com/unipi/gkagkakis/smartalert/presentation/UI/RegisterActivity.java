@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Patterns;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -122,7 +123,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Validate email format
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        if (!TextUtils.isEmpty(email) && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!TextUtils.isEmpty(email) && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             etEmail.setError("Please enter a valid email address");
             hasError = true;
         }

@@ -1,6 +1,7 @@
 package com.unipi.gkagkakis.smartalert.service;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -11,10 +12,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
@@ -28,6 +31,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.SetOptions;
+
 import com.unipi.gkagkakis.smartalert.R;
 import com.unipi.gkagkakis.smartalert.presentation.UI.HomepageActivity;
 
@@ -96,12 +101,13 @@ public class LocationTrackingForegroundService extends Service {
         return null; // We don't provide binding
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Location Tracking",
-                NotificationManager.IMPORTANCE_LOW
+                    CHANNEL_ID,
+                    "Location Tracking",
+                    NotificationManager.IMPORTANCE_LOW
             );
             channel.setDescription("Tracks location for smart alerts");
             channel.setShowBadge(false);
@@ -112,7 +118,7 @@ public class LocationTrackingForegroundService extends Service {
     private Notification createNotification() {
         Intent notificationIntent = new Intent(this, HomepageActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
+                this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
         );
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -132,24 +138,19 @@ public class LocationTrackingForegroundService extends Service {
                 .setMaxUpdateDelayMillis(UPDATE_INTERVAL) // Match the update interval
                 .build();
 
-        Log.d(TAG, "Location request created with " + UPDATE_INTERVAL/1000 + "s interval, " + MIN_DISTANCE_METERS + "m minimum distance");
+        Log.d(TAG, "Location request created with " + UPDATE_INTERVAL / 1000 + "s interval, " + MIN_DISTANCE_METERS + "m minimum distance");
     }
 
     private void createLocationCallback() {
         locationCallback = new LocationCallback() {
             @Override
-            public void onLocationResult(LocationResult locationResult) {
+            public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
-
-                if (locationResult == null) {
-                    Log.w(TAG, "Location result is null");
-                    return;
-                }
 
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
                     Log.d(TAG, "Location update received: " + location.getLatitude() + ", " + location.getLongitude() +
-                          " (accuracy: " + location.getAccuracy() + "m, age: " + (System.currentTimeMillis() - location.getTime()) + "ms)");
+                            " (accuracy: " + location.getAccuracy() + "m, age: " + (System.currentTimeMillis() - location.getTime()) + "ms)");
 
                     // Check if we should update based on distance
                     if (shouldUpdateLocation(location)) {
@@ -159,8 +160,6 @@ public class LocationTrackingForegroundService extends Service {
                     } else {
                         Log.d(TAG, "Location update skipped - movement less than " + MIN_DISTANCE_METERS + "m");
                     }
-                } else {
-                    Log.w(TAG, "Location in result is null");
                 }
             }
         };
@@ -191,7 +190,7 @@ public class LocationTrackingForegroundService extends Service {
 
     private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "Location permissions not granted, cannot start location updates");
             stopSelf();
             return;
@@ -199,12 +198,10 @@ public class LocationTrackingForegroundService extends Service {
 
         try {
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
-            Log.d(TAG, "Location updates started successfully - expecting updates every " + UPDATE_INTERVAL/1000 + " seconds");
+            Log.d(TAG, "Location updates started successfully - expecting updates every " + UPDATE_INTERVAL / 1000 + " seconds");
 
             // Schedule a check to ensure location updates are working
-            new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
-                Log.d(TAG, "Location update check - service should be providing regular updates now");
-            }, UPDATE_INTERVAL + 5000); // Check 5 seconds after first expected update
+            new Handler(Looper.getMainLooper()).postDelayed(() -> Log.d(TAG, "Location update check - service should be providing regular updates now"), UPDATE_INTERVAL + 5000); // Check 5 seconds after first expected update
 
         } catch (Exception e) {
             Log.e(TAG, "Failed to request location updates", e);
@@ -239,19 +236,17 @@ public class LocationTrackingForegroundService extends Service {
         firestore.collection("users")
                 .document(userId)
                 .update(locationData)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Background location stored successfully: " + latitude + ", " + longitude);
-                })
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Background location stored successfully: " + latitude + ", " + longitude))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to store background location", e);
                     // If update fails, try to set the location (in case document doesn't exist)
                     firestore.collection("users")
                             .document(userId)
-                            .set(locationData, com.google.firebase.firestore.SetOptions.merge())
+                            .set(locationData, SetOptions.merge())
                             .addOnSuccessListener(aVoid2 ->
-                                Log.d(TAG, "Background location set successfully: " + latitude + ", " + longitude))
+                                    Log.d(TAG, "Background location set successfully: " + latitude + ", " + longitude))
                             .addOnFailureListener(e2 ->
-                                Log.e(TAG, "Failed to set background location", e2));
+                                    Log.e(TAG, "Failed to set background location", e2));
                 });
     }
 
@@ -270,6 +265,7 @@ public class LocationTrackingForegroundService extends Service {
         notificationManager.notify(NOTIFICATION_ID, updatedNotification);
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     public static void startService(Context context) {
         Intent serviceIntent = new Intent(context, LocationTrackingForegroundService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -277,10 +273,5 @@ public class LocationTrackingForegroundService extends Service {
         } else {
             context.startService(serviceIntent);
         }
-    }
-
-    public static void stopService(Context context) {
-        Intent serviceIntent = new Intent(context, LocationTrackingForegroundService.class);
-        context.stopService(serviceIntent);
     }
 }

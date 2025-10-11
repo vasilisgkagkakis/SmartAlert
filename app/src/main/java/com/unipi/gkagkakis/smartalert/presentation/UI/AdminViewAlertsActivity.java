@@ -180,11 +180,7 @@ public class AdminViewAlertsActivity extends BaseActivity implements SubmittedAl
                     // Delete all submitted alerts in the group
                     deleteSubmittedAlertsInGroup(group, position);
 
-                    // TODO: Send push notification to all users
                     sendPushNotificationToAllUsers(newAlert);
-
-                    Toast.makeText(AdminViewAlertsActivity.this,
-                            "Alert group accepted and published!", Toast.LENGTH_SHORT).show();
                 }
 
                 @Override

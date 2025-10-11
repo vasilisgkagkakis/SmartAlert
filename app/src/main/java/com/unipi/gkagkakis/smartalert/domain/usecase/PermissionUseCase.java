@@ -72,7 +72,7 @@ public class PermissionUseCase {
         }
 
         // Handle location permissions
-        locationTrackingService.handlePermissionResult(requestCode, permissions, grantResults);
+        locationTrackingService.handlePermissionResult(requestCode, grantResults);
 
         // After handling basic location permissions, request background permission
         if (requestCode == LocationTrackingService.LOCATION_PERMISSION_REQUEST_CODE) {

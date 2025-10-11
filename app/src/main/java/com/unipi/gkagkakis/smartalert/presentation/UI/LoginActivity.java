@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Patterns;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,6 +18,7 @@ import com.unipi.gkagkakis.smartalert.Utils.AnimationHelper;
 import com.unipi.gkagkakis.smartalert.Utils.StatusBarHelper;
 import com.unipi.gkagkakis.smartalert.presentation.viewmodel.LoginViewModel;
 import com.unipi.gkagkakis.smartalert.domain.repository.UserRepository;
+import com.unipi.gkagkakis.smartalert.service.FCMTokenManager;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -146,7 +148,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Validate email format
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        if (!TextUtils.isEmpty(email) && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!TextUtils.isEmpty(email) && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             etEmail.setError("Please enter a valid email address");
             hasError = true;
         }
@@ -158,7 +160,7 @@ public class LoginActivity extends AppCompatActivity {
         isRedirecting = true; // Set redirecting flag
 
         // Initialize FCM token for the logged-in user (handles regeneration if needed)
-        com.unipi.gkagkakis.smartalert.service.FCMTokenManager.getInstance(this).initializeToken();
+        FCMTokenManager.getInstance(this).initializeToken();
 
         viewModel.getUserRepository().checkIsAdmin(new UserRepository.IsAdminCallback() {
             @Override

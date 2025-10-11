@@ -1,6 +1,12 @@
 package com.unipi.gkagkakis.smartalert.presentation.adapter;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,12 +16,17 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.unipi.gkagkakis.smartalert.R;
+import com.unipi.gkagkakis.smartalert.Utils.BlurHelper;
+import com.unipi.gkagkakis.smartalert.Utils.ImageLoader;
 import com.unipi.gkagkakis.smartalert.Utils.LocationUtils;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlert;
 import com.unipi.gkagkakis.smartalert.model.SubmittedAlertGroup;
+import com.unipi.gkagkakis.smartalert.presentation.UI.ImagePreviewDialogFragment;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -23,7 +34,6 @@ import java.util.Locale;
 
 public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAlertGroupAdapter.SubmittedAlertGroupViewHolder> {
 
-    // Fixed ViewHolder visibility and button click position issues
     private final List<SubmittedAlertGroup> submittedAlertGroups;
     private final SimpleDateFormat dateFormat;
     private final OnGroupActionListener listener;
@@ -224,13 +234,12 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
                 layoutAlertImage.setVisibility(View.VISIBLE);
 
                 // Load image using ImageLoader utility
-                com.unipi.gkagkakis.smartalert.Utils.ImageLoader.loadImage(
-                    itemView.getContext(),
+                ImageLoader.loadImage(
                     imageUrl,
                     imageAlertPhoto,
-                    new com.unipi.gkagkakis.smartalert.Utils.ImageLoader.ImageLoadCallback() {
+                    new ImageLoader.ImageLoadCallback() {
                         @Override
-                        public void onImageLoaded(@NonNull android.graphics.Bitmap bitmap) {
+                        public void onImageLoaded(@NonNull Bitmap bitmap) {
                             // Image loaded successfully
                             imageAlertPhoto.setImageBitmap(bitmap);
 
@@ -251,33 +260,33 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
             }
         }
 
-        private void showImagePreview(android.graphics.Bitmap bitmap) {
+        private void showImagePreview(Bitmap bitmap) {
             // Get the activity to access the window and fragment manager
-            android.app.Activity activity = null;
-            android.content.Context context = itemView.getContext();
-            if (context instanceof android.app.Activity) {
-                activity = (android.app.Activity) context;
-            } else if (context instanceof androidx.appcompat.view.ContextThemeWrapper) {
-                activity = (android.app.Activity) ((androidx.appcompat.view.ContextThemeWrapper) context).getBaseContext();
+            Activity activity = null;
+            Context context = itemView.getContext();
+            if (context instanceof Activity) {
+                activity = (Activity) context;
+            } else if (context instanceof ContextThemeWrapper) {
+                activity = (Activity) ((ContextThemeWrapper) context).getBaseContext();
             }
 
-            if (activity instanceof androidx.fragment.app.FragmentActivity) {
-                androidx.fragment.app.FragmentActivity fragmentActivity = (androidx.fragment.app.FragmentActivity) activity;
+            if (activity instanceof FragmentActivity) {
+                FragmentActivity fragmentActivity = (FragmentActivity) activity;
 
                 // Capture screenshot using modern approach
                 View rootView = fragmentActivity.getWindow().getDecorView().getRootView();
-                android.graphics.Bitmap screenshot = createBitmapFromView(rootView);
+                Bitmap screenshot = createBitmapFromView(rootView);
 
-                android.graphics.Bitmap blurred = com.unipi.gkagkakis.smartalert.Utils.BlurHelper.blur(context, screenshot, 15);
-                com.unipi.gkagkakis.smartalert.presentation.UI.ImagePreviewDialogFragment dialog =
-                    com.unipi.gkagkakis.smartalert.presentation.UI.ImagePreviewDialogFragment.newInstance(bitmap, blurred);
+                Bitmap blurred = BlurHelper.blur(context, screenshot, 15);
+                ImagePreviewDialogFragment dialog =
+                    ImagePreviewDialogFragment.newInstance(bitmap, blurred);
                 dialog.show(fragmentActivity.getSupportFragmentManager(), "image_preview");
             } else {
                 // Fallback to simple dialog if we can't get FragmentActivity
-                android.app.Dialog dialog = new android.app.Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-                dialog.setContentView(com.unipi.gkagkakis.smartalert.R.layout.dialog_image_preview);
+                Dialog dialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+                dialog.setContentView(R.layout.dialog_image_preview);
 
-                ImageView previewImage = dialog.findViewById(com.unipi.gkagkakis.smartalert.R.id.iv_preview);
+                ImageView previewImage = dialog.findViewById(R.id.iv_preview);
                 previewImage.setImageBitmap(bitmap);
                 previewImage.setOnClickListener(v -> dialog.dismiss());
                 dialog.show();
@@ -285,12 +294,12 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
         }
 
         @SuppressLint("ObsoleteSdkInt")
-        private android.graphics.Bitmap createBitmapFromView(View view) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        private Bitmap createBitmapFromView(View view) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // Modern approach for API 26+
-                android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(
-                    view.getWidth(), view.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
-                android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+                Bitmap bitmap = Bitmap.createBitmap(
+                    view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(bitmap);
                 view.draw(canvas);
                 return bitmap;
             } else {
@@ -300,9 +309,9 @@ public class SubmittedAlertGroupAdapter extends RecyclerView.Adapter<SubmittedAl
         }
 
         @SuppressWarnings("deprecation")
-        private android.graphics.Bitmap createBitmapFromViewLegacy(View view) {
+        private Bitmap createBitmapFromViewLegacy(View view) {
             view.setDrawingCacheEnabled(true);
-            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(view.getDrawingCache());
+            Bitmap bitmap = Bitmap.createBitmap(view.getDrawingCache());
             view.setDrawingCacheEnabled(false);
             return bitmap;
         }

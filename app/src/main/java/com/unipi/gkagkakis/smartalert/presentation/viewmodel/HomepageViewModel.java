@@ -1,5 +1,6 @@
 package com.unipi.gkagkakis.smartalert.presentation.viewmodel;
 
+import android.app.Activity;
 import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -68,7 +69,7 @@ public class HomepageViewModel extends AndroidViewModel {
     /**
      * Updates user location when homepage is opened/resumed
      */
-    public void updateUserLocation(android.app.Activity activity) {
+    public void updateUserLocation(Activity activity) {
         if (locationTrackingService.hasLocationPermissions()) {
             // Start continuous tracking if we have permissions
             if (locationTrackingService.hasBackgroundLocationPermission()) {
@@ -87,14 +88,14 @@ public class HomepageViewModel extends AndroidViewModel {
     /**
      * Handles permission results through PermissionUseCase
      */
-    public void handlePermissionResult(android.app.Activity activity, int requestCode, String[] permissions, int[] grantResults) {
+    public void handlePermissionResult(Activity activity, int requestCode, String[] permissions, int[] grantResults) {
         permissionUseCase.handlePermissionResult(activity, requestCode, permissions, grantResults);
     }
 
     /**
      * Requests location permissions through PermissionUseCase
      */
-    public void requestLocationPermissions(android.app.Activity activity) {
+    public void requestLocationPermissions(Activity activity) {
         permissionUseCase.requestLocationPermissionsAndStartTracking(activity);
     }
 
@@ -135,4 +136,3 @@ public class HomepageViewModel extends AndroidViewModel {
         _locationPermissionRequired.setValue(false);
     }
 }
-
