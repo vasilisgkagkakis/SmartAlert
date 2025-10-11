@@ -69,7 +69,7 @@ public class ImageStorageService {
             return;
         }
 
-        Log.d(TAG, "Starting image upload for URI: " + imageUri.toString());
+        Log.d(TAG, "Starting image upload for URI: " + imageUri);
 
         try {
             // Convert URI to byte array

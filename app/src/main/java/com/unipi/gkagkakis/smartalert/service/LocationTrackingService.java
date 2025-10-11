@@ -33,10 +33,10 @@ public class LocationTrackingService {
     public static final int BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1003;
 
     private static LocationTrackingService instance;
-    private Context context;
-    private FusedLocationProviderClient fusedLocationClient;
-    private FirebaseFirestore firestore;
-    private FirebaseAuth auth;
+    private final Context context;
+    private final FusedLocationProviderClient fusedLocationClient;
+    private final FirebaseFirestore firestore;
+    private final FirebaseAuth auth;
     private LocationCallback singleUpdateCallback;
     private boolean isContinuousTrackingActive = false; // Track service state
 

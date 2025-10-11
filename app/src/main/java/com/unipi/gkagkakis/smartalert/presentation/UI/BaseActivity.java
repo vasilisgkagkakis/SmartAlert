@@ -43,7 +43,9 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
                 if (useDrawer && drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     drawerLayout.closeDrawer(GravityCompat.START);
                 } else {
-                    BaseActivity.super.onBackPressed();
+                    // Remove this callback and let the system handle the back press
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
                 }
             }
         });

@@ -7,7 +7,7 @@ import com.unipi.gkagkakis.smartalert.service.LocationTrackingService;
 
 public class InitializeLocationUseCase {
     private static final String TAG = "InitializeLocationUseCase";
-    private LocationTrackingService locationTrackingService;
+    private final LocationTrackingService locationTrackingService;
 
     public InitializeLocationUseCase(Context context) {
         this.locationTrackingService = LocationTrackingService.getInstance(context);

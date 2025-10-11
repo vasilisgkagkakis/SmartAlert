@@ -170,7 +170,8 @@ public class NewAlertFragment extends Fragment {
 
         alertViewModel.getUploadProgress().observe(getViewLifecycleOwner(), progress -> {
             if (progress != null && progress > 0 && progress < 100) {
-                btnCreateAlert.setText(R.string.uploading + progress + R.string.percent);
+                String uploadText = progress + "%";
+                btnCreateAlert.setText(uploadText);
             }
         });
 

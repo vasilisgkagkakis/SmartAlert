@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -217,7 +218,7 @@ public class FCMNotificationSender {
             InputStream serviceAccount = context.getAssets().open("service-account-key.json");
             GoogleCredentials googleCredentials = GoogleCredentials
                     .fromStream(serviceAccount)
-                    .createScoped(Arrays.asList(SCOPE));
+                    .createScoped(List.of(SCOPE));
             googleCredentials.refresh();
             return googleCredentials.getAccessToken().getTokenValue();
         } catch (IOException e) {

@@ -17,10 +17,10 @@ public class FCMTokenManager {
     private static final String KEY_FCM_TOKEN = "fcm_token";
 
     private static FCMTokenManager instance;
-    private Context context;
-    private SharedPreferences preferences;
-    private FirebaseFirestore firestore;
-    private FirebaseAuth auth;
+    private final Context context;
+    private final SharedPreferences preferences;
+    private final FirebaseFirestore firestore;
+    private final FirebaseAuth auth;
 
     private FCMTokenManager(Context context) {
         this.context = context.getApplicationContext();

@@ -42,7 +42,7 @@ public class Base64ImageService {
     }
 
     public void convertImageToBase64(@NonNull Context context, @NonNull Uri imageUri, @NonNull ImageConversionCallback callback) {
-        Log.d(TAG, "Starting Base64 conversion for URI: " + imageUri.toString());
+        Log.d(TAG, "Starting Base64 conversion for URI: " + imageUri);
 
         new Thread(() -> {
             try {
