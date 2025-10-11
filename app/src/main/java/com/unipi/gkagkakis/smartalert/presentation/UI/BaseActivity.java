@@ -51,7 +51,6 @@ public abstract class BaseActivity extends AppCompatActivity implements Navigati
         });
     }
 
-    // For activities WITH drawer
     protected void setContentViewWithDrawer(int layoutResId) {
         useDrawer = true;
         super.setContentView(R.layout.activity_base_with_drawer);
